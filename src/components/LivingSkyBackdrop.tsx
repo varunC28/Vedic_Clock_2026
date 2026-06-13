@@ -4,13 +4,9 @@ import { AppState, Platform, StyleSheet, View, useWindowDimensions } from 'react
 import { computeSolarPhase, gradientForPhase } from '../core/skyGradient';
 import { VedicClockState } from '../models';
 
-interface Props {
-  state: VedicClockState;
-}
-
 const BACKGROUND_VIDEO = require('../../assets/bg0.mp4');
 
-export function LivingSkyBackdrop({ state }: Props): JSX.Element {
+export const LivingSkyBackdrop = React.memo(function LivingSkyBackdrop(): JSX.Element {
   const { width, height } = useWindowDimensions();
   const appState = useRef(AppState.currentState);
   
@@ -105,7 +101,7 @@ export function LivingSkyBackdrop({ state }: Props): JSX.Element {
 
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

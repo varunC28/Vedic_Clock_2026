@@ -111,7 +111,7 @@ interface Props {
 export function HeroDigits({ text, big = false, scale = 1 }: Props): React.JSX.Element {
   const digits = text.split('');
   const height = (big ? 112 : 98) * scale * 1.0;
-  const width = height * 0.7; // Proportional width for beautiful layout
+  const width = height * 0.85; // Generously wide so all digits are bottlenecked by height and scale to identical vertical bounds
 
   return (
     <View style={styles.row}>
@@ -122,7 +122,7 @@ export function HeroDigits({ text, big = false, scale = 1 }: Props): React.JSX.E
           width={width}
           height={height}
           style={{
-            marginHorizontal: -width * 0.16, // Tighter kerning
+            marginHorizontal: - width * 0.05, // Slight positive gap between numbers
           }}
         />
       ))}

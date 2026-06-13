@@ -21,6 +21,7 @@ import { MUHURTAS } from '../data/muhurtas';
 import { VedicClockState } from '../models';
 import { colors } from '../theme';
 import { GiltArch } from './GiltArch';
+import { EngravedText } from './EngravedText';
 import { HeroDigits } from './HeroDigits';
 import { RASHI_ICONS } from '../data/rashiAssets';
 import { NAKSHATRA_ICONS } from '../data/nakshatraAssets';
@@ -34,7 +35,7 @@ interface Props {
 
 const FRAME_ONLY = require('../../assets/images/OnlyFrame.png');
 const EARTH_VIDEO = require('../../assets/Rotating_Earth.mp4');
-const RASHI_CIRCLE = require('../../assets/images/rashi circle.png');
+const CORNER_ASSET = require('../../assets/images/corner_assest.png');
 
 interface AnimatedIconProps {
   index: number;
@@ -90,40 +91,8 @@ function AnimatedIcon({ index, size, scale, icons }: AnimatedIconProps): React.J
     outputRange: ['-30deg', '0deg'],
   });
 
-  // Rashi circle frame is oval (1686×2528, W/H ≈ 0.667)
-  const frameAspect = 1686 / 2528; // 0.667 — width is 66.7% of height
-  const frameH = size * 1.55;      // frame height relative to icon size
-  const frameW = frameH * frameAspect;
-
-  // Inner oval bg — matches the inner cutout of the frame
-  // Inner cutout is ~77.8% of image width, ~54.3% of image height
-  const bgW = frameW * 0.78;
-  const bgH = frameH * 0.62;
-
   return (
     <View style={{ width: size, height: size, position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
-      <View
-        style={{
-          position: 'absolute',
-          width: bgW,
-          height: bgH,
-          left: (size - bgW) / 2,
-          top: (size - bgH) / 2,
-          borderRadius: bgH / 2,
-          backgroundColor: 'rgba(0, 0, 0, 0.90)',
-        }}
-      />
-      <Image
-        source={RASHI_CIRCLE}
-        style={{
-          position: 'absolute',
-          width: frameW,
-          height: frameH,
-          left: (size - frameW) / 2,
-          top: (size - frameH) / 2,
-        }}
-        resizeMode="contain"
-      />
       {prevIndex !== null && (
         <Animated.Image
           source={icons[prevIndex]}
@@ -203,7 +172,6 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
   const earthPlayer = useVideoPlayer(EARTH_VIDEO, (player) => {
     player.loop = true;
     player.muted = true;
-    player.playbackRate = 0.4; // Slightly faster to avoid 30fps stuttering
     player.staysActiveInBackground = true;
     player.play();
   });
@@ -270,25 +238,36 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
     };
   }, [size, scale, fontScale]);
 
-  const rashiRadiusBottom = half * 0.89; // Tuned to perfectly hit the bottom dots
-  const rashiRadiusTop = half * 0.94; // Pushed out a tiny bit more to hit the top dots
+  // ── Tuning Values for Frame Cutouts ──
+  // These control the exact X/Y offset from the center of the dial for the 4 circular golden cutouts.
+  const topCutoutX = half * 0.75; // Distance left/right from center for top icons
+  const topCutoutY = half * 0.62; // Distance up from center for top icons
 
-  const angleLeft = 135 * Math.PI / 180;
-  const angleRight = 45 * Math.PI / 180;
-  const angleTopLeft = 225 * Math.PI / 180;
-  const angleTopRight = 315 * Math.PI / 180;
+  const bottomCutoutX = half * 0.75; // Distance left/right from center for bottom icons
+  const bottomCutoutY = half * 0.54; // Distance down from center for bottom icons
 
-  const moonX = half + rashiRadiusBottom * Math.cos(angleLeft) - rashiSize / 2;
-  const moonY = half + rashiRadiusBottom * Math.sin(angleLeft) - rashiSize / 2;
+  // Nakshatra (Top-Left Cutout)
+  const rashiBgSize = rashiSize * 0.999; // Shrunk slightly to fit within the golden rims
+  const nakshatraX = half - topCutoutX - rashiBgSize / 2;
+  const nakshatraY = half - topCutoutY - rashiBgSize / 2;
 
-  const sunX = half + rashiRadiusBottom * Math.cos(angleRight) - rashiSize / 2;
-  const sunY = half + rashiRadiusBottom * Math.sin(angleRight) - rashiSize / 2;
+  // Tithi (Top-Right Cutout)
+  const tithiX = half + topCutoutX - rashiBgSize / 2;
+  const tithiY = half - topCutoutY - rashiBgSize / 2;
 
-  const nakshatraX = half + rashiRadiusTop * Math.cos(angleTopLeft) - rashiSize / 2;
-  const nakshatraY = half + rashiRadiusTop * Math.sin(angleTopLeft) - rashiSize / 2;
+  // Chandra Rashi / Moon (Bottom-Left Cutout)
+  const moonX = half - bottomCutoutX - rashiBgSize / 2;
+  const moonY = half + bottomCutoutY - rashiBgSize / 2;
 
-  const tithiX = half + rashiRadiusTop * Math.cos(angleTopRight) - rashiSize / 2;
-  const tithiY = half + rashiRadiusTop * Math.sin(angleTopRight) - rashiSize / 2;
+  // Surya Rashi / Sun (Bottom-Right Cutout)
+  const sunX = half + bottomCutoutX - rashiBgSize / 2;
+  const sunY = half + bottomCutoutY - rashiBgSize / 2;
+
+  const formatTimeIst = (d: Date) => d.toLocaleTimeString('en-US', {
+    timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit'
+  });
+  const sunriseStr = formatTimeIst(state.sunriseUtc);
+  const sunsetStr = formatTimeIst(state.sunsetUtc);
 
   // Build the 30 muhurta wedges as SVG paths.
   const wedges: { d: string; fill: string; key: number }[] = [];
@@ -425,45 +404,54 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
   const karanaLabelX = svgHalf + r_karana_label * Math.cos(activeAngleRad);
   const karanaLabelY = svgHalf + r_karana_label * Math.sin(activeAngleRad);
 
-  const renderCurvedWords = (text: string, cx: number, cy: number, r: number, midAngleDeg: number, isTopHalf: boolean = false, showBg: boolean = false) => {
-    const words = text.split(' ');
-
-    // Accurately estimate visual width of Devanagari text
+  const renderCurvedWords = (text: string, cx: number, cy: number, r: number, midAngleDeg: number, isTopHalf: boolean = false, showBg: boolean = false, fontSizeOverride?: number) => {
+    // 1. Calculate approximate visual span for the background track
     const getVisualLength = (str: string) => {
-      // 1. Strip matras and halants to get base characters
       const baseStr = str.replace(/[\u0901-\u0903\u093E-\u094C\u094E-\u0954\u0962\u0963\u094D]/g, '');
-      // 2. Count halants (each halant merges two characters into one conjunct)
       const halants = (str.match(/\u094D/g) || []).length;
-      // 3. Adjust for thin characters (colon)
       let len = baseStr.length - halants;
       len -= (str.match(/:/g) || []).length * 0.4;
       return Math.max(len, 0.1);
     };
 
-    const spaceWidth = 0.7; // Visual width of a space character
+    const words = text.split(' ');
+    const isSymmetricFormat = words.length === 3 && words[1] === ':';
+    const spaceWidth = 0.7;
 
     let visualTotalChars = 0;
-    words.forEach((w, i) => {
-      visualTotalChars += getVisualLength(w);
-      if (i < words.length - 1) visualTotalChars += spaceWidth;
-    });
+    const wordPositions: number[] = [];
+
+    if (isSymmetricFormat) {
+      const leftLen = getVisualLength(words[0]);
+      const colonLen = getVisualLength(words[1]);
+      const rightLen = getVisualLength(words[2]);
+      const maxSide = Math.max(leftLen, rightLen);
+
+      wordPositions.push(maxSide - leftLen / 2);
+      wordPositions.push(maxSide + spaceWidth + colonLen / 2);
+      wordPositions.push(maxSide + spaceWidth * 2 + colonLen + rightLen / 2);
+
+      visualTotalChars = maxSide * 2 + spaceWidth * 2 + colonLen;
+    } else {
+      let currentVisualIndex = 0;
+      words.forEach((w, i) => {
+        const visualWordLen = getVisualLength(w);
+        wordPositions.push(currentVisualIndex + visualWordLen / 2);
+        currentVisualIndex += visualWordLen + spaceWidth;
+      });
+      visualTotalChars = currentVisualIndex - spaceWidth;
+    }
 
     const degreesPerVisualChar = 3.6;
     const span = Math.min(Math.max(visualTotalChars * degreesPerVisualChar, 25), 65);
 
+    // Shift radius inwards for top-half arches to vertically center the text
+    const effectiveR = isTopHalf ? r - (15 * scale) : r;
+
+    // Background path calculation
     const startAngleDeg = isTopHalf ? midAngleDeg - span / 2 : midAngleDeg + span / 2;
     const endAngleDeg = isTopHalf ? midAngleDeg + span / 2 : midAngleDeg - span / 2;
-
-    let currentVisualIndex = 0;
-
-    // Shift radius inwards for top-half arches to vertically center the text
-    // because alignmentBaseline="middle" extends text outwards on the top half.
-    const effectiveR = isTopHalf ? r - (15 * scale) : r;
-    // Offset background to correctly overlap the text bounds on both top and bottom halves
     const bgRadius = effectiveR + (isTopHalf ? (6 * scale) : (-6 * scale));
-
-    // Optional rounded black background behind text
-    // Compute padding and sweep direction dynamically based on whether the angle is increasing or decreasing
     const isIncreasing = endAngleDeg > startAngleDeg;
     const padding = 1.5;
     const paddedStart = startAngleDeg + (isIncreasing ? -padding : padding);
@@ -486,8 +474,7 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
           />
         )}
         {words.map((word, i) => {
-          const visualWordLen = getVisualLength(word);
-          const centerVisualIndex = currentVisualIndex + visualWordLen / 2;
+          const centerVisualIndex = wordPositions ? wordPositions[i] : 0;
           const t = visualTotalChars > 0 ? centerVisualIndex / visualTotalChars : 0.5;
 
           const angleDeg = startAngleDeg + t * (endAngleDeg - startAngleDeg);
@@ -496,12 +483,11 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
           const y = cy + effectiveR * Math.sin(angleRad);
           const rotation = isTopHalf ? angleDeg + 90 : angleDeg - 90;
 
-          currentVisualIndex += visualWordLen + spaceWidth; // space width instead of 1
           return (
             <G key={i} x={x} y={y} rotation={rotation} origin="0, 0">
               <SvgText
                 fill={colors.highlight}
-                fontSize={32 * scale}
+                fontSize={fontSizeOverride || 32 * scale}
                 fontWeight="bold"
                 textAnchor="middle"
                 alignmentBaseline="middle"
@@ -538,30 +524,26 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
         />
       </View>
 
-      {/* Layer 2: Frame Ring Overlay — transparent center lets video show through */}
-      <View
-        style={{
-          position: 'absolute',
-          width: maskSize,
-          height: maskSize,
-          left: maskOffset,
-          top: maskOffset,
-          borderRadius: maskSize / 2,
-          overflow: 'hidden',
-        }}
-      >
-        <Image
-          source={FRAME_ONLY}
-          style={{
-            position: 'absolute',
-            width: scaledSize,
-            height: scaledSize,
-            left: -imageOffset,
-            top: -imageOffset,
-          }}
-          resizeMode="cover"
-        />
-      </View>
+      {/* Layer 2: Full UI Frame Overlay */}
+      {(() => {
+        const frameScale = 1.0; // Increased to make the frame larger relative to the dial
+        const frameOffsetY = 10; // Positive moves down, negative moves up
+        const frameW = scaledSize * (2528 / 1696) * frameScale;
+        const frameH = scaledSize * frameScale;
+        return (
+          <Image
+            source={FRAME_ONLY}
+            style={{
+              position: 'absolute',
+              width: frameW,
+              height: frameH,
+              left: (size - frameW) / 2,
+              top: (size - frameH) / 2 + frameOffsetY,
+            }}
+            resizeMode="contain"
+          />
+        );
+      })()}
 
       <Svg
         width={svgSize}
@@ -608,20 +590,7 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
         ))}
 
         {/* Yoga Percentage Label */}
-        <G
-          x={svgHalf + r_yoga_label * Math.cos(yogaLabelAngleRad)}
-          y={svgHalf + r_yoga_label * Math.sin(yogaLabelAngleRad)}
-        >
-          <SvgText
-            fill={colors.highlight}
-            fontSize={22 * scale}
-            fontWeight="bold"
-            textAnchor="middle"
-            alignmentBaseline="middle"
-          >
-            {`${targetPercentage}/100`}
-          </SvgText>
-        </G>
+        {renderCurvedWords(`${targetPercentage}/100`, svgHalf, svgHalf, r_yoga_label, yogaLabelAngleDeg, false, false, 22 * scale)}
 
         {/* Right Arch (Sun Rashi) */}
 
@@ -644,25 +613,13 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
         ))}
 
         {/* Karana Active Slot Label */}
-        <G
-          x={karanaLabelX}
-          y={karanaLabelY}
-        >
-          <SvgText
-            fill={colors.highlight}
-            fontSize={22 * scale}
-            fontWeight="bold"
-            textAnchor="middle"
-            alignmentBaseline="middle"
-          >
-            {`${targetKaranaSlot}/60`}
-          </SvgText>
-        </G>
+        {renderCurvedWords(`${targetKaranaSlot}/60`, svgHalf, svgHalf, r_karana_label + (15 * scale), activeAngleDeg, true, false, 22 * scale)}
 
         {/* Top-Right Arch (Tithi) */}
 
         {/* Top-Right Text (Tithi) */}
         {renderCurvedWords(`तिथि : ${state.panchang.tithi.nameHi}`, svgHalf, svgHalf, r_text_top, 315, true, true)}
+
       </Svg>
 
 
@@ -677,13 +634,13 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
             borderRadius: (ringInnerR * 2 * 1.12) / 2,
             justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.05)',
+            backgroundColor: 'rgba(0, 0, 0, 0.45)', // Increased from 0.05 for much higher contrast
             borderWidth: 1 * scale,
             borderColor: 'rgba(184, 134, 11, 0.4)',
             shadowColor: '#000',
-            shadowOffset: { width: 0, height: 4 * scale },
-            shadowOpacity: 0.4,
-            shadowRadius: 5 * scale,
+            shadowOffset: { width: 0, height: 6 * scale },
+            shadowOpacity: 0.7,
+            shadowRadius: 12 * scale,
           }
         ]}
         pointerEvents="none"
@@ -691,17 +648,17 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
         <View style={{ transform: [{ translateY: 44 * scale }], alignItems: 'center' }}>
           <View style={[styles.digitsRow, { alignItems: 'flex-start' }]}>
             <View style={{ alignItems: 'center' }}>
-              <HeroDigits text={mm} scale={scale * 1.15} />
+              <HeroDigits text={mm} scale={scale * 0.65} />
               <Text style={[styles.rashiLabel, { fontSize: 24 * scale, marginTop: 6 * scale, letterSpacing: 1 * scale }]}>मुहूर्त</Text>
             </View>
-            <Image source={require('../../assets/numbers/colon.png')} style={{ height: 112 * scale, width: 34 * scale, resizeMode: 'contain', marginHorizontal: -2 * scale }} />
+            <Image source={require('../../assets/numbers/colon.png')} style={{ height: 72 * scale, width: 28 * scale, resizeMode: 'contain', marginHorizontal: 0 }} />
             <View style={{ alignItems: 'center' }}>
-              <HeroDigits text={kk1} scale={scale * 1.15} />
+              <HeroDigits text={kk1} scale={scale * 0.65} />
               <Text style={[styles.rashiLabel, { fontSize: 24 * scale, marginTop: 6 * scale, letterSpacing: 1 * scale }]}>कला</Text>
             </View>
-            <Image source={require('../../assets/numbers/colon.png')} style={{ height: 112 * scale, width: 34 * scale, resizeMode: 'contain', marginHorizontal: -2 * scale }} />
+            <Image source={require('../../assets/numbers/colon.png')} style={{ height: 72 * scale, width: 28 * scale, resizeMode: 'contain', marginHorizontal: 0 }} />
             <View style={{ alignItems: 'center' }}>
-              <HeroDigits text={kk2} scale={scale * 1.15} />
+              <HeroDigits text={kk2} scale={scale * 0.65} />
               <Text style={[styles.rashiLabel, { fontSize: 24 * scale, marginTop: 6 * scale, letterSpacing: 1 * scale }]}>काष्ठा</Text>
             </View>
           </View>
@@ -722,21 +679,87 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
       </View>
 
       {/* Floating Icons */}
-      <View style={[styles.rashiFloatingContainer, { left: moonX, top: moonY, width: rashiSize, height: rashiSize }]}>
+      <View style={[styles.rashiFloatingContainer, { left: moonX, top: moonY, width: rashiBgSize, height: rashiBgSize }]}>
         <AnimatedIcon index={state.panchang.moonRashi.index} size={rashiSize} scale={scale} icons={RASHI_ICONS} />
       </View>
 
-      <View style={[styles.rashiFloatingContainer, { left: sunX, top: sunY, width: rashiSize, height: rashiSize }]}>
+      <View style={[styles.rashiFloatingContainer, { left: sunX, top: sunY, width: rashiBgSize, height: rashiBgSize }]}>
         <AnimatedIcon index={state.panchang.sunRashi.index} size={rashiSize} scale={scale} icons={RASHI_ICONS} />
       </View>
 
-      <View style={[styles.rashiFloatingContainer, { left: nakshatraX, top: nakshatraY, width: rashiSize, height: rashiSize }]}>
+      <View style={[styles.rashiFloatingContainer, { left: nakshatraX, top: nakshatraY, width: rashiBgSize, height: rashiBgSize }]}>
         <AnimatedIcon index={state.panchang.nakshatra.index} size={rashiSize} scale={scale} icons={NAKSHATRA_ICONS} />
       </View>
 
-      <View style={[styles.rashiFloatingContainer, { left: tithiX, top: tithiY, width: rashiSize, height: rashiSize }]}>
+      <View style={[styles.rashiFloatingContainer, { left: tithiX, top: tithiY, width: rashiBgSize, height: rashiBgSize }]}>
         <AnimatedIcon index={state.panchang.tithi.index} size={rashiSize} scale={scale} icons={TITHI_ICONS} />
       </View>
+
+      {/* ── Capsule Text Overlays ── */}
+      {(() => {
+        const capsuleOffset = size * 0.75; // Decreased to pull text inwards (Sunrise right, Sunset left)
+        const capWidth = 180 * scale;
+        const capHeight = 120 * scale;
+        const capTop = half - (capHeight / 2) + 8; // Pulled further up
+
+        return (
+          <>
+            {/* Sunrise (Left Capsule, 9 o'clock) */}
+            <View style={{
+              position: 'absolute',
+              left: half - capsuleOffset - (capWidth / 2),
+              top: capTop,
+              width: capWidth,
+              height: capHeight,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <EngravedText text={sunriseStr} fontSize={28 * scale} />
+              <Text style={{
+                color: colors.highlight,
+                fontWeight: '800',
+                letterSpacing: 1.5,
+                textTransform: 'uppercase',
+                textShadowColor: 'rgba(0, 0, 0, 0.85)',
+                textShadowOffset: { width: 0, height: 1.5 },
+                textShadowRadius: 3,
+                fontSize: 20 * scale,
+                marginTop: 6 * scale,
+                marginBottom: 6 * scale
+              }} numberOfLines={1}>
+                सूर्योदय
+              </Text>
+            </View>
+
+            {/* Sunset (Right Capsule, 3 o'clock) */}
+            <View style={{
+              position: 'absolute',
+              left: half + capsuleOffset - (capWidth / 2),
+              top: capTop,
+              width: capWidth,
+              height: capHeight,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <EngravedText text={sunsetStr} fontSize={28 * scale} />
+              <Text style={{
+                color: colors.highlight,
+                fontWeight: '800',
+                letterSpacing: 1.5,
+                textTransform: 'uppercase',
+                textShadowColor: 'rgba(0, 0, 0, 0.85)',
+                textShadowOffset: { width: 0, height: 1.5 },
+                textShadowRadius: 3,
+                fontSize: 20 * scale,
+                marginTop: 6 * scale,
+                marginBottom: 6 * scale
+              }} numberOfLines={1}>
+                सूर्यास्त
+              </Text>
+            </View>
+          </>
+        );
+      })()}
 
     </View>
   );
@@ -889,6 +912,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#000000',
+    borderRadius: 5000,
   },
   rashiFloatingBg: {
     position: 'absolute',

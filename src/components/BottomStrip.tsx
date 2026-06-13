@@ -10,8 +10,8 @@
 
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
-import { LOCATION } from '../config';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { LocationConfig } from '../config';
 import { EngravedText } from './EngravedText';
 import { VedicClockState } from '../models';
 import { colors, glass } from '../theme';
@@ -20,9 +20,11 @@ import { useResponsive } from '../hooks/useResponsive';
 
 interface Props {
   state: VedicClockState;
+  location: LocationConfig;
+  onChangeLocation?: () => void;
 }
 
-export function BottomStrip({ state }: Props): JSX.Element {
+export function BottomStrip({ state, location, onChangeLocation }: Props): JSX.Element {
   const responsive = useResponsive();
   const { scale, scaleFont, bottomStripHeight, isPortrait } = responsive;
 
@@ -31,7 +33,7 @@ export function BottomStrip({ state }: Props): JSX.Element {
   const horizontalGap = isPortrait ? 8 : 20 * scale;
 
   return (
-    <View style={[styles.container, { height: bottomStripHeight, justifyContent: 'center', gap: 300 * scale }]}>
+    <View style={[styles.container, { height: bottomStripHeight, justifyContent: 'center', gap: 500 * scale }]}>
       {/* Block 1: Samvat */}
       <View style={[styles.cornerStack, { width: 380 * scale, transform: [{ translateY: -15 * scale }] }]}>
         <Image
@@ -49,20 +51,24 @@ export function BottomStrip({ state }: Props): JSX.Element {
 
       <View style={{ alignItems: 'center' }} />
 
-      {/* Block 2: Location */}
-      <View style={[styles.cornerStack, { width: 380 * scale, transform: [{ translateY: -15 * scale }] }]}>
+      {/* Block 2: Location (tappable to change) */}
+      <TouchableOpacity
+        style={[styles.cornerStack, { width: 380 * scale, transform: [{ translateY: -15 * scale }] }]}
+        onPress={onChangeLocation}
+        activeOpacity={onChangeLocation ? 0.7 : 1}
+      >
         <Image
           source={require('../../assets/images/corner_assest.png')}
           style={[styles.cornerBg, { width: 450 * scale, height: 260 * scale }]}
           resizeMode="stretch"
         />
         <View style={styles.cornerContent}>
-          <EngravedText text={LOCATION.cityHi} fontSize={28 * scale} />
+          <EngravedText text={location.cityHi} fontSize={28 * scale} />
           <Text style={[styles.bookendEn, { fontSize: 20 * scale, marginTop: 6 * scale, marginBottom: 6 * scale }]} numberOfLines={1}>
-            {LOCATION.latitude.toFixed(2)}°N · {LOCATION.longitude.toFixed(2)}°E
+            {location.latitude.toFixed(2)}°N · {location.longitude.toFixed(2)}°E
           </Text>
         </View>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 }

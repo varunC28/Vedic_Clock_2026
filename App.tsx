@@ -34,7 +34,12 @@ import { LivingSkyBackdrop } from './src/components/LivingSkyBackdrop';
 import { SunBar } from './src/components/SunBar';
 // import { LeftWing, RightWing } from './src/components/Wings';
 import { TopBar } from './src/components/TopBar';
+import { LoadingScreen } from './src/components/LoadingScreen';
+import { LocationPromptScreen } from './src/components/LocationPromptScreen';
+import { useAssets } from 'expo-asset';
+import { ALL_ASSETS } from './src/preloadAssets';
 import { useVedicClock } from './src/hooks/useVedicClock';
+import { useLocation } from './src/hooks/useLocation';
 import { useResponsive } from './src/hooks/useResponsive';
 import { colors } from './src/theme';
 
@@ -43,6 +48,9 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 export default function App(): JSX.Element {
+  const [assets] = useAssets(ALL_ASSETS);
+  const assetsLoaded = !!assets;
+
   const [interLoaded] = useInter({
     Inter_400Regular,
     Inter_500Medium,
@@ -54,11 +62,13 @@ export default function App(): JSX.Element {
   });
   const fontsLoaded = interLoaded && tiroLoaded;
 
+  const { location, isLoading: locationLoading, saveLocation, clearLocation } = useLocation();
+
   const onLayoutRoot = useCallback(async () => {
-    if (fontsLoaded) {
+    if (fontsLoaded && assetsLoaded) {
       await SplashScreen.hideAsync().catch(() => { });
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, assetsLoaded]);
 
   // Support responsive landscape/portrait rotation + keep screen awake.
   useEffect(() => {
@@ -70,12 +80,14 @@ export default function App(): JSX.Element {
   const responsive = useResponsive();
   const { width, height, isPortrait, spacing } = responsive;
 
-  if (!fontsLoaded) {
-    return (
-      <View style={styles.loader}>
-        <ActivityIndicator color={colors.highlight} />
-      </View>
-    );
+  // Phase 1: Loading assets, fonts, and checking stored location
+  if (!fontsLoaded || !assetsLoaded || locationLoading) {
+    return <LoadingScreen />;
+  }
+
+  // Phase 2: No location saved yet — show the prompt
+  if (!location) {
+    return <LocationPromptScreen onLocationSelected={saveLocation} />;
   }
 
   // Dial & Wing fitting computations
@@ -85,17 +97,15 @@ export default function App(): JSX.Element {
 
   // Force dial to 95% of available physical space
   const maxDialPhysicalSize = Math.min(width, height) * 0.95;
-  const dialSize = maxDialPhysicalSize / 1.70;
+  const dialSize = maxDialPhysicalSize / 1.55; // Decreased from 1.70 to scale the dial up
 
   return (
     <View style={styles.root} onLayout={onLayoutRoot}>
       <StatusBar hidden />
-      {state && <LivingSkyBackdrop state={state} />}
+      {state && <LivingSkyBackdrop />}
 
       {state == null ? (
-        <View style={styles.loader}>
-          <ActivityIndicator color={colors.highlight} />
-        </View>
+        <LoadingScreen />
       ) : (
         <View style={[styles.body, { padding: 0 }]}>
           {isPortrait ? (
@@ -112,13 +122,13 @@ export default function App(): JSX.Element {
             </View>
           )}
 
-          <View style={[styles.topSection, { top: spacing }]}>
+          <View style={[styles.topSection, { top: spacing + 290 }]}>
             <TopBar state={state} />
             {/* <SunBar state={state} /> */}
           </View>
 
-          <View style={[styles.bottomSection, { bottom: spacing }]}>
-            <BottomStrip state={state} />
+          <View style={[styles.bottomSection, { bottom: spacing + 340 }]}>
+            <BottomStrip state={state} location={location} onChangeLocation={clearLocation} />
           </View>
         </View>
       )}

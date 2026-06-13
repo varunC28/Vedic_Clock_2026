@@ -1,26 +1,31 @@
 /**
- * Kiosk-wide constants. Hard-coded for Bhopal because this is an offline
- * single-location clock — generalising to "any location" would require an
- * IP-geo lookup at boot, which kiosks don't have, and an editable settings
- * screen, which kiosks don't want.
+ * Kiosk-wide constants. The clock is India-only, so IST stays hardcoded.
+ * Location is now dynamic — DEFAULT_LOCATION is the fallback used when
+ * the user hasn't chosen a location yet.
  *
  * Lat/lon are Drik Panchang's Bhopal anchor (23°15′35″ N, 77°24′40″ E).
  * Height is sea level; for sunrise refraction-corrected to −0.833° it
  * doesn't matter at 500 m elevation.
  */
 
-export const LOCATION = {
+export interface LocationConfig {
+  city: string;
+  cityHi: string;
+  /** Decimal degrees, north positive. */
+  latitude: number;
+  /** Decimal degrees, east positive. */
+  longitude: number;
+  /** Metres above sea level. */
+  heightMeters: number;
+}
+
+export const DEFAULT_LOCATION: LocationConfig = {
   city: 'Bhopal',
   cityHi: 'भोपाल',
-  /** Decimal degrees, north positive. */
   latitude: 23.2599,
-  /** Decimal degrees, east positive. */
   longitude: 77.4126,
-  /** Metres above sea level. */
   heightMeters: 500,
-  /** IANA timezone — for display labels only; the math is all in UTC. */
-  tz: 'Asia/Kolkata',
-} as const;
+};
 
 /** IST is UTC+5:30, never DST. Use this to convert UTC↔IST for display. */
 export const IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000;

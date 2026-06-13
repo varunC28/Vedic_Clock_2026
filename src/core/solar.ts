@@ -15,14 +15,26 @@
  */
 
 import * as Astronomy from 'astronomy-engine';
-import { LOCATION, toIst } from '../config';
+import { DEFAULT_LOCATION, LocationConfig, toIst } from '../config';
 
-/** A pre-built Observer at the kiosk's hard-coded location. */
-const OBSERVER = new Astronomy.Observer(
-  LOCATION.latitude,
-  LOCATION.longitude,
-  LOCATION.heightMeters,
+/**
+ * Module-level Observer — built once via `setLocation()`, reused every tick.
+ * Defaults to Bhopal so the clock works even before the user picks a location.
+ */
+let OBSERVER = new Astronomy.Observer(
+  DEFAULT_LOCATION.latitude,
+  DEFAULT_LOCATION.longitude,
+  DEFAULT_LOCATION.heightMeters,
 );
+
+/**
+ * Update the observer to a new location. Call this once when the user
+ * picks GPS or manual coordinates — all subsequent sunrise/sunset/longitude
+ * calls will use the new observer without any per-tick allocation.
+ */
+export function setLocation(loc: LocationConfig): void {
+  OBSERVER = new Astronomy.Observer(loc.latitude, loc.longitude, loc.heightMeters);
+}
 
 /**
  * Find sunrise for the given civil IST date.

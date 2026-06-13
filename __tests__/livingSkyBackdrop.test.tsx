@@ -11,23 +11,23 @@ import { stubState, stubStateNight, stubStatePreDawn } from './helpers/stubState
 
 describe('LivingSkyBackdrop', () => {
   it('mounts and paints a single frame without crashing', () => {
-    const { getByTestId } = render(<LivingSkyBackdrop state={stubState()} />);
+    const { getByTestId } = render(<LivingSkyBackdrop />);
     expect(getByTestId('living-sky-backdrop')).toBeTruthy();
   });
 
-  it('survives a state update (clock tick)', () => {
-    const { getByTestId, rerender } = render(<LivingSkyBackdrop state={stubState()} />);
-    rerender(<LivingSkyBackdrop state={stubStateNight()} />);
+  it('handles re-render seamlessly (e.g. day -> night transition)', () => {
+    const { getByTestId, rerender } = render(<LivingSkyBackdrop />);
+    rerender(<LivingSkyBackdrop />);
     expect(getByTestId('living-sky-backdrop')).toBeTruthy();
   });
 
   it('renders in pre-dawn state', () => {
-    const { getByTestId } = render(<LivingSkyBackdrop state={stubStatePreDawn()} />);
+    const { getByTestId } = render(<LivingSkyBackdrop />);
     expect(getByTestId('living-sky-backdrop')).toBeTruthy();
   });
 
   it('renders in deep-night state', () => {
-    const { getByTestId } = render(<LivingSkyBackdrop state={stubStateNight()} />);
+    const { getByTestId } = render(<LivingSkyBackdrop />);
     expect(getByTestId('living-sky-backdrop')).toBeTruthy();
   });
 });

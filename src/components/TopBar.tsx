@@ -55,7 +55,7 @@ export function TopBar({ state }: Props): JSX.Element {
 
   return (
     <View style={[styles.container, glass.panel, { height: topBarHeight }]}>
-      <View style={[styles.row, { justifyContent: 'center', gap: 300 * scale }]}>
+      <View style={[styles.row, { justifyContent: 'center', gap: 500 * scale }]}>
         <View style={[styles.cornerStack, { width: 380 * scale }]}>
           <Image
             source={require('../../assets/images/corner_assest.png')}
