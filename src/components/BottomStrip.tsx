@@ -33,17 +33,17 @@ export function BottomStrip({ state, location, onChangeLocation }: Props): JSX.E
   const horizontalGap = isPortrait ? 8 : 20 * scale;
 
   return (
-    <View style={[styles.container, { height: bottomStripHeight, justifyContent: 'center', gap: 500 * scale }]}>
+    <View style={[styles.container, { height: bottomStripHeight, justifyContent: 'space-between', paddingHorizontal: 12 * scale }]}>
       {/* Block 1: Samvat */}
-      <View style={[styles.cornerStack, { width: 380 * scale, transform: [{ translateY: -15 * scale }] }]}>
+      <View style={[styles.cornerStack, { width: 260 * scale, transform: [{ translateY: -15 * scale }] }]}>
         <Image
           source={require('../../assets/images/corner_assest.png')}
-          style={[styles.cornerBg, { width: 450 * scale, height: 260 * scale }]}
+          style={[styles.cornerBg, { width: 280 * scale, height: 140 * scale }]}
           resizeMode="stretch"
         />
         <View style={styles.cornerContent}>
-          <EngravedText text={state.vikramSamvatYear.toString()} fontSize={28 * scale} />
-          <Text style={[styles.bookendEn, { fontSize: 20 * scale, marginTop: 6 * scale, marginBottom: 6 * scale }]} numberOfLines={1}>
+          <EngravedText text={state.vikramSamvatYear.toString()} fontSize={16 * scale} />
+          <Text style={[styles.bookendEn, { fontSize: 11 * scale, marginTop: 4 * scale, marginBottom: 4 * scale }]} numberOfLines={1}>
             विक्रम संवत्
           </Text>
         </View>
@@ -53,18 +53,18 @@ export function BottomStrip({ state, location, onChangeLocation }: Props): JSX.E
 
       {/* Block 2: Location (tappable to change) */}
       <TouchableOpacity
-        style={[styles.cornerStack, { width: 380 * scale, transform: [{ translateY: -15 * scale }] }]}
+        style={[styles.cornerStack, { width: 260 * scale, transform: [{ translateY: -15 * scale }] }]}
         onPress={onChangeLocation}
         activeOpacity={onChangeLocation ? 0.7 : 1}
       >
         <Image
           source={require('../../assets/images/corner_assest.png')}
-          style={[styles.cornerBg, { width: 450 * scale, height: 260 * scale }]}
+          style={[styles.cornerBg, { width: 280 * scale, height: 140 * scale }]}
           resizeMode="stretch"
         />
         <View style={styles.cornerContent}>
-          <EngravedText text={location.cityHi} fontSize={28 * scale} />
-          <Text style={[styles.bookendEn, { fontSize: 20 * scale, marginTop: 6 * scale, marginBottom: 6 * scale }]} numberOfLines={1}>
+          <EngravedText text={location.cityHi} fontSize={16 * scale} />
+          <Text style={[styles.bookendEn, { fontSize: 11 * scale, marginTop: 4 * scale, marginBottom: 4 * scale }]} numberOfLines={1}>
             {location.latitude.toFixed(2)}°N · {location.longitude.toFixed(2)}°E
           </Text>
         </View>

@@ -224,44 +224,40 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
   const fontScale = PixelRatio.getFontScale();
 
   // Responsive Rashi sizing — refined for fluid adaptation
-  const { rashiSize, rashiPos, rashiBottom, rashiFontSize, rashiLabelOffset } = useMemo(() => {
+  const rashiSize = useMemo(() => {
     // Non-linear scaling for better balance across device classes
     const baseRashiSize = size * 0.22;
     const sizeFloor = 52 * Math.sqrt(scale);
-
-    return {
-      rashiSize: Math.max(baseRashiSize, sizeFloor),
-      rashiPos: size * 0.13, // Keep horizontal position wide
-      rashiBottom: size * 0.01, // Push even lower down closer to the bottom edge
-      rashiFontSize: (Math.max(9.5 * scale, 8)) / fontScale,
-      rashiLabelOffset: -16 * scale,
-    };
-  }, [size, scale, fontScale]);
+    return Math.max(baseRashiSize, sizeFloor);
+  }, [size, scale]);
 
   // ── Tuning Values for Frame Cutouts ──
   // These control the exact X/Y offset from the center of the dial for the 4 circular golden cutouts.
-  const topCutoutX = half * 0.75; // Distance left/right from center for top icons
-  const topCutoutY = half * 0.62; // Distance up from center for top icons
+  const frameOffsetY = 10 * scale;
+  const frameCenterY = half + (4 * scale); // Found the exact vertical midpoint
 
-  const bottomCutoutX = half * 0.75; // Distance left/right from center for bottom icons
-  const bottomCutoutY = half * 0.54; // Distance down from center for bottom icons
+  const topCutoutX = half * 0.748; // Perfect
+  const topCutoutY = half * 0.620; // Perfect
+
+  const bottomCutoutX = half * 0.747; // Pushed outwards slightly
+  const bottomCutoutY = half * 0.537; // Perfect
 
   // Nakshatra (Top-Left Cutout)
   const rashiBgSize = rashiSize * 0.999; // Shrunk slightly to fit within the golden rims
   const nakshatraX = half - topCutoutX - rashiBgSize / 2;
-  const nakshatraY = half - topCutoutY - rashiBgSize / 2;
+  const nakshatraY = frameCenterY - topCutoutY - rashiBgSize / 2;
 
   // Tithi (Top-Right Cutout)
   const tithiX = half + topCutoutX - rashiBgSize / 2;
-  const tithiY = half - topCutoutY - rashiBgSize / 2;
+  const tithiY = frameCenterY - topCutoutY - rashiBgSize / 2;
 
   // Chandra Rashi / Moon (Bottom-Left Cutout)
   const moonX = half - bottomCutoutX - rashiBgSize / 2;
-  const moonY = half + bottomCutoutY - rashiBgSize / 2;
+  const moonY = frameCenterY + bottomCutoutY - rashiBgSize / 2;
 
   // Surya Rashi / Sun (Bottom-Right Cutout)
   const sunX = half + bottomCutoutX - rashiBgSize / 2;
-  const sunY = half + bottomCutoutY - rashiBgSize / 2;
+  const sunY = frameCenterY + bottomCutoutY - rashiBgSize / 2;
 
   const formatTimeIst = (d: Date) => d.toLocaleTimeString('en-US', {
     timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit'
@@ -297,17 +293,17 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
   // Video sizing — inner cutout is 65.5% of the frame diameter
   const videoSize = scaledSize * 0.655;
   const videoOffset = (maskSize - videoSize) / 2;
-  const svgSize = size * 1.70;
+  const svgSize = size * 2.00;
   const svgHalf = svgSize / 2;
   const svgOffset = (svgSize - size) / 2;
 
-  const r_inner_bottom = half * 1.16;
-  const r_outer_bottom = half * 1.42;
-  const r_text_bottom = half * 1.29;
+  const r_inner_bottom = half * 1.28;
+  const r_outer_bottom = half * 1.54;
+  const r_text_bottom = half * 1.41;
 
-  const r_inner_top = half * 1.22;
-  const r_outer_top = half * 1.48;
-  const r_text_top = half * 1.35;
+  const r_inner_top = half * 1.34;
+  const r_outer_top = half * 1.60;
+  const r_text_top = half * 1.47;
 
   // Left side: centered at 135 degrees.
   const leftWedgeStart = 105 * Math.PI / 180;
@@ -352,9 +348,9 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
   const yogaLabelAngleDeg = yogaStartAngleDeg - targetYogaFraction * yogaAngleSpan;
   const yogaLabelAngleRad = yogaLabelAngleDeg * Math.PI / 180;
 
-  const r_yoga_tick_start = r_text_bottom + 34 * scale;
-  const r_yoga_tick_end = r_text_bottom + 48 * scale;
-  const r_yoga_label = r_text_bottom + 66 * scale;
+  const r_yoga_tick_start = r_text_bottom + 30 * scale;
+  const r_yoga_tick_end = r_text_bottom + 44 * scale;
+  const r_yoga_label = r_text_bottom + 62 * scale;
 
   const yogaTicks: { x1: number; y1: number; x2: number; y2: number; isActive: boolean; key: number }[] = [];
   for (let i = 0; i < 60; i++) {
@@ -378,9 +374,9 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
   const karanaStartAngleDeg = 252.5;
   const karanaEndAngleDeg = 287.5;
   const karanaAngleSpan = karanaEndAngleDeg - karanaStartAngleDeg; // 35 degrees
-  const r_karana_tick_start = r_text_top + 34 * scale;
-  const r_karana_tick_end = r_text_top + 48 * scale;
-  const r_karana_label = r_text_top + 62 * scale;
+  const r_karana_tick_start = r_text_top + 30 * scale;
+  const r_karana_tick_end = r_text_top + 44 * scale;
+  const r_karana_label = r_text_top + 58 * scale;
 
   // 60 tick lines coordinates
   const karanaTicks: { x1: number; y1: number; x2: number; y2: number; isActive: boolean; key: number }[] = [];
@@ -415,35 +411,21 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
     };
 
     const words = text.split(' ');
-    const isSymmetricFormat = words.length === 3 && words[1] === ':';
     const spaceWidth = 0.7;
-
     let visualTotalChars = 0;
     const wordPositions: number[] = [];
 
-    if (isSymmetricFormat) {
-      const leftLen = getVisualLength(words[0]);
-      const colonLen = getVisualLength(words[1]);
-      const rightLen = getVisualLength(words[2]);
-      const maxSide = Math.max(leftLen, rightLen);
+    let currentVisualIndex = 0;
+    words.forEach((w) => {
+      const visualWordLen = getVisualLength(w);
+      wordPositions.push(currentVisualIndex + visualWordLen / 2);
+      currentVisualIndex += visualWordLen + spaceWidth;
+    });
+    visualTotalChars = currentVisualIndex - spaceWidth;
 
-      wordPositions.push(maxSide - leftLen / 2);
-      wordPositions.push(maxSide + spaceWidth + colonLen / 2);
-      wordPositions.push(maxSide + spaceWidth * 2 + colonLen + rightLen / 2);
-
-      visualTotalChars = maxSide * 2 + spaceWidth * 2 + colonLen;
-    } else {
-      let currentVisualIndex = 0;
-      words.forEach((w, i) => {
-        const visualWordLen = getVisualLength(w);
-        wordPositions.push(currentVisualIndex + visualWordLen / 2);
-        currentVisualIndex += visualWordLen + spaceWidth;
-      });
-      visualTotalChars = currentVisualIndex - spaceWidth;
-    }
-
-    const degreesPerVisualChar = 3.6;
-    const span = Math.min(Math.max(visualTotalChars * degreesPerVisualChar, 25), 65);
+    const degreesPerVisualChar = 3.3;
+    const paddingDegrees = 5; // Tighter padding
+    const span = Math.min(visualTotalChars * degreesPerVisualChar + paddingDegrees, 50);
 
     // Shift radius inwards for top-half arches to vertically center the text
     const effectiveR = isTopHalf ? r - (15 * scale) : r;
@@ -505,6 +487,7 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
     <View style={[styles.wrapper, { width: size, height: size, transform: [{ translateY: 0 }] }]}>
 
       {/* Layer 1: Rotating Earth Video — circular-clipped behind the frame */}
+
       <View
         style={{
           position: 'absolute',
@@ -527,7 +510,7 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
       {/* Layer 2: Full UI Frame Overlay */}
       {(() => {
         const frameScale = 1.0; // Increased to make the frame larger relative to the dial
-        const frameOffsetY = 10; // Positive moves down, negative moves up
+        const frameOffsetY = 10 * scale; // Scales with dial size
         const frameW = scaledSize * (2528 / 1696) * frameScale;
         const frameH = scaledSize * frameScale;
         return (
@@ -600,8 +583,8 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
 
         {renderCurvedWords(`नक्षत्र : ${state.panchang.nakshatra.nameHi}`, svgHalf, svgHalf, r_text_top, 225, true, true)}
 
-        {/* Top-Center Arch (Karana) */}
-        {renderCurvedWords(`करण : ${state.panchang.karana.nameHi}`, svgHalf, svgHalf, r_text_top + 10 * scale, 270, true, true)}
+        {/* Karana (Top-Center) */}
+        {renderCurvedWords(`करण : ${state.panchang.karana.nameHi}`, svgHalf, svgHalf, r_text_top, 270, true, true)}
 
         {karanaTicks.map((tick) => (
           <Path
@@ -634,13 +617,8 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
             borderRadius: (ringInnerR * 2 * 1.12) / 2,
             justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.45)', // Increased from 0.05 for much higher contrast
-            borderWidth: 1 * scale,
-            borderColor: 'rgba(184, 134, 11, 0.4)',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 6 * scale },
-            shadowOpacity: 0.7,
-            shadowRadius: 12 * scale,
+            backgroundColor: 'transparent',
+            // Border and shadow removed to keep globe unfiltered
           }
         ]}
         pointerEvents="none"
@@ -697,44 +675,18 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
 
       {/* ── Capsule Text Overlays ── */}
       {(() => {
-        const capsuleOffset = size * 0.75; // Decreased to pull text inwards (Sunrise right, Sunset left)
+        const frameOffsetY = -5 * scale;
+        const capsuleOffset = size * 0.72; // Increased multiplier to push the text blocks further outward
         const capWidth = 180 * scale;
         const capHeight = 120 * scale;
-        const capTop = half - (capHeight / 2) + 8; // Pulled further up
+        const capTop = half - (capHeight / 2) + frameOffsetY + 12 * scale; // Nudged downwards a hair
 
         return (
           <>
-            {/* Sunrise (Left Capsule, 9 o'clock) */}
+            {/* Sunset (Left Capsule, 9 o'clock) */}
             <View style={{
               position: 'absolute',
               left: half - capsuleOffset - (capWidth / 2),
-              top: capTop,
-              width: capWidth,
-              height: capHeight,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <EngravedText text={sunriseStr} fontSize={28 * scale} />
-              <Text style={{
-                color: colors.highlight,
-                fontWeight: '800',
-                letterSpacing: 1.5,
-                textTransform: 'uppercase',
-                textShadowColor: 'rgba(0, 0, 0, 0.85)',
-                textShadowOffset: { width: 0, height: 1.5 },
-                textShadowRadius: 3,
-                fontSize: 20 * scale,
-                marginTop: 6 * scale,
-                marginBottom: 6 * scale
-              }} numberOfLines={1}>
-                सूर्योदय
-              </Text>
-            </View>
-
-            {/* Sunset (Right Capsule, 3 o'clock) */}
-            <View style={{
-              position: 'absolute',
-              left: half + capsuleOffset - (capWidth / 2),
               top: capTop,
               width: capWidth,
               height: capHeight,
@@ -755,6 +707,33 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
                 marginBottom: 6 * scale
               }} numberOfLines={1}>
                 सूर्यास्त
+              </Text>
+            </View>
+
+            {/* Sunrise (Right Capsule, 3 o'clock) */}
+            <View style={{
+              position: 'absolute',
+              left: half + capsuleOffset - (capWidth / 2),
+              top: capTop,
+              width: capWidth,
+              height: capHeight,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <EngravedText text={sunriseStr} fontSize={28 * scale} />
+              <Text style={{
+                color: colors.highlight,
+                fontWeight: '800',
+                letterSpacing: 1.5,
+                textTransform: 'uppercase',
+                textShadowColor: 'rgba(0, 0, 0, 0.85)',
+                textShadowOffset: { width: 0, height: 1.5 },
+                textShadowRadius: 3,
+                fontSize: 20 * scale,
+                marginTop: 6 * scale,
+                marginBottom: 6 * scale
+              }} numberOfLines={1}>
+                सूर्योदय
               </Text>
             </View>
           </>

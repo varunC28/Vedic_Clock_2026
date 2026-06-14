@@ -5,9 +5,10 @@
  *   2. "Enter Manually" — text inputs for latitude & longitude
  *
  * Styled to match the Vedic Clock's premium dark-gold aesthetic.
+ * All sizing is responsive via useResponsive().
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Animated,
   Easing,
@@ -20,12 +21,14 @@ import {
 import * as Location from 'expo-location';
 import { LocationConfig, DEFAULT_LOCATION } from '../config';
 import { colors } from '../theme';
+import { useResponsive } from '../hooks/useResponsive';
 
 interface Props {
   onLocationSelected: (loc: LocationConfig) => void;
 }
 
 export function LocationPromptScreen({ onLocationSelected }: Props): JSX.Element {
+  const { scale } = useResponsive();
   const [showManual, setShowManual] = useState(false);
   const [cityName, setCityName] = useState('');
   const [latText, setLatText] = useState('');
@@ -51,6 +54,8 @@ export function LocationPromptScreen({ onLocationSelected }: Props): JSX.Element
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
   });
+
+  const s = useMemo(() => getStyles(scale), [scale]);
 
   async function handleGPS() {
     setErrorMessage(null);
@@ -124,62 +129,79 @@ export function LocationPromptScreen({ onLocationSelected }: Props): JSX.Element
   }
 
   if (loading) {
+    const ringSize = 80 * scale;
+    const innerSize = 68 * scale;
     return (
-      <View style={styles.container}>
+      <View style={s.container}>
         <Animated.View
-          style={[styles.spinnerRing, { transform: [{ rotate: spin }] }]}
+          style={[{
+            width: ringSize,
+            height: ringSize,
+            borderRadius: ringSize / 2,
+            borderWidth: 6 * scale,
+            borderColor: colors.bgLiftHi,
+            borderTopColor: colors.highlight,
+            borderRightColor: colors.highlightSoft,
+            position: 'absolute',
+          }, { transform: [{ rotate: spin }] }]}
         />
-        <View style={styles.innerCircle} />
-        <Text style={styles.loadingText}>Fetching Location...</Text>
+        <View style={{
+          width: innerSize,
+          height: innerSize,
+          borderRadius: innerSize / 2,
+          backgroundColor: colors.bgDeep,
+          position: 'absolute',
+        }} />
+        <Text style={s.loadingText}>Fetching Location...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={s.container}>
       {/* Title */}
-      <Text style={styles.title}>विक्रमादित्य वैदिक घड़ी</Text>
-      <Text style={styles.subtitle}>Set Your Location</Text>
-      <Text style={styles.description}>
+      <Text style={s.title}>विक्रमादित्य वैदिक घड़ी</Text>
+      <Text style={s.subtitle}>Set Your Location</Text>
+      <Text style={s.description}>
         The clock needs your location to calculate accurate sunrise, sunset, and panchang timings.
       </Text>
 
       {/* Inline Error Banner */}
       {errorMessage && (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorIcon}>⚠️</Text>
-          <Text style={styles.errorText}>{errorMessage}</Text>
+        <View style={s.errorBanner}>
+          <Text style={s.errorIcon}>⚠️</Text>
+          <Text style={s.errorText}>{errorMessage}</Text>
         </View>
       )}
 
       {/* GPS Button */}
-      <TouchableOpacity style={styles.gpsButton} onPress={handleGPS} activeOpacity={0.8}>
-        <Text style={styles.gpsButtonIcon}>📍</Text>
-        <Text style={styles.gpsButtonText}>Use Current Location</Text>
+      <TouchableOpacity style={s.gpsButton} onPress={handleGPS} activeOpacity={0.8}>
+        <Text style={s.gpsButtonIcon}>📍</Text>
+        <Text style={s.gpsButtonText}>Use Current Location</Text>
       </TouchableOpacity>
 
       {/* Divider */}
-      <View style={styles.dividerRow}>
-        <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>OR</Text>
-        <View style={styles.dividerLine} />
+      <View style={s.dividerRow}>
+        <View style={s.dividerLine} />
+        <Text style={s.dividerText}>OR</Text>
+        <View style={s.dividerLine} />
       </View>
 
       {/* Manual Entry */}
       {!showManual ? (
         <TouchableOpacity
-          style={styles.manualToggle}
+          style={s.manualToggle}
           onPress={() => setShowManual(true)}
           activeOpacity={0.8}
         >
-          <Text style={styles.manualToggleText}>Enter Coordinates Manually</Text>
+          <Text style={s.manualToggleText}>Enter Coordinates Manually</Text>
         </TouchableOpacity>
       ) : (
-        <View style={styles.manualForm}>
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>City Name</Text>
+        <View style={s.manualForm}>
+          <View style={s.inputRow}>
+            <Text style={s.inputLabel}>City Name</Text>
             <TextInput
-              style={styles.input}
+              style={s.input}
               value={cityName}
               onChangeText={(t) => { setCityName(t); setErrorMessage(null); }}
               placeholder="e.g. Indore"
@@ -187,10 +209,10 @@ export function LocationPromptScreen({ onLocationSelected }: Props): JSX.Element
               returnKeyType="next"
             />
           </View>
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Latitude (°N)</Text>
+          <View style={s.inputRow}>
+            <Text style={s.inputLabel}>Latitude (°N)</Text>
             <TextInput
-              style={styles.input}
+              style={s.input}
               value={latText}
               onChangeText={(t) => { setLatText(t); setErrorMessage(null); }}
               placeholder="e.g. 22.7196"
@@ -199,10 +221,10 @@ export function LocationPromptScreen({ onLocationSelected }: Props): JSX.Element
               returnKeyType="next"
             />
           </View>
-          <View style={styles.inputRow}>
-            <Text style={styles.inputLabel}>Longitude (°E)</Text>
+          <View style={s.inputRow}>
+            <Text style={s.inputLabel}>Longitude (°E)</Text>
             <TextInput
-              style={styles.input}
+              style={s.input}
               value={lonText}
               onChangeText={(t) => { setLonText(t); setErrorMessage(null); }}
               placeholder="e.g. 75.8577"
@@ -212,11 +234,11 @@ export function LocationPromptScreen({ onLocationSelected }: Props): JSX.Element
             />
           </View>
           <TouchableOpacity
-            style={styles.submitButton}
+            style={s.submitButton}
             onPress={handleManualSubmit}
             activeOpacity={0.8}
           >
-            <Text style={styles.submitButtonText}>Set Location</Text>
+            <Text style={s.submitButtonText}>Set Location</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -224,190 +246,174 @@ export function LocationPromptScreen({ onLocationSelected }: Props): JSX.Element
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bgDeep,
-    paddingHorizontal: 32,
-  },
-  title: {
-    fontFamily: 'TiroDevanagariHindi_400Regular',
-    fontSize: 32,
-    color: colors.highlight,
-    marginBottom: 8,
-    textShadowColor: 'rgba(232, 185, 75, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
-  },
-  subtitle: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 22,
-    color: colors.ink,
-    marginBottom: 12,
-    letterSpacing: 1,
-  },
-  description: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 14,
-    color: colors.inkMuted,
-    textAlign: 'center',
-    maxWidth: 400,
-    marginBottom: 40,
-    lineHeight: 20,
-  },
-  gpsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.bgLiftHi,
-    borderWidth: 1.5,
-    borderColor: colors.highlight,
-    borderRadius: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    marginBottom: 24,
-    shadowColor: colors.highlight,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  gpsButtonIcon: {
-    fontSize: 22,
-    marginRight: 12,
-  },
-  gpsButtonText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 18,
-    color: colors.highlight,
-    letterSpacing: 0.5,
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-    width: '80%',
-    maxWidth: 350,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.pinstripe,
-  },
-  dividerText: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 13,
-    color: colors.inkMuted,
-    marginHorizontal: 16,
-    letterSpacing: 2,
-  },
-  manualToggle: {
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-  },
-  manualToggleText: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 16,
-    color: colors.inkMuted,
-    letterSpacing: 0.5,
-  },
-  manualForm: {
-    width: '100%',
-    maxWidth: 380,
-    alignItems: 'center',
-  },
-  inputRow: {
-    width: '100%',
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 13,
-    color: colors.inkMuted,
-    marginBottom: 6,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  input: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 18,
-    color: colors.ink,
-    borderWidth: 1.5,
-    borderColor: colors.glassBorderHi,
-    borderRadius: 10,
-    backgroundColor: colors.bgLift,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-  },
-  submitButton: {
-    backgroundColor: colors.highlight,
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 40,
-    marginTop: 8,
-    shadowColor: colors.highlight,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  submitButtonText: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 17,
-    color: colors.bgDeep,
-    letterSpacing: 1,
-  },
-  // Loading/spinner states
-  spinnerRing: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 6,
-    borderColor: colors.bgLiftHi,
-    borderTopColor: colors.highlight,
-    borderRightColor: colors.highlightSoft,
-    position: 'absolute',
-  },
-  innerCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: colors.bgDeep,
-    position: 'absolute',
-  },
-  loadingText: {
-    marginTop: 120,
-    fontFamily: 'Inter_500Medium',
-    fontSize: 20,
-    color: colors.highlight,
-    letterSpacing: 1,
-  },
-  // Inline error banner
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(192, 72, 72, 0.15)',
-    borderWidth: 1,
-    borderColor: colors.ashubha,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    marginBottom: 24,
-    maxWidth: 460,
-  },
-  errorIcon: {
-    fontSize: 20,
-    marginRight: 12,
-  },
-  errorText: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 14,
-    color: colors.ashubha,
-    flex: 1,
-    lineHeight: 20,
-  },
-});
+/** Generates fully scaled styles from the responsive scale factor. */
+function getStyles(scale: number) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.bgDeep,
+      paddingHorizontal: 32 * scale,
+    },
+    title: {
+      fontFamily: 'TiroDevanagariHindi_400Regular',
+      fontSize: 32 * scale,
+      color: colors.highlight,
+      marginBottom: 8 * scale,
+      textShadowColor: 'rgba(232, 185, 75, 0.3)',
+      textShadowOffset: { width: 0, height: 2 * scale },
+      textShadowRadius: 8 * scale,
+    },
+    subtitle: {
+      fontFamily: 'Inter_600SemiBold',
+      fontSize: 22 * scale,
+      color: colors.ink,
+      marginBottom: 12 * scale,
+      letterSpacing: 1 * scale,
+    },
+    description: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 14 * scale,
+      color: colors.inkMuted,
+      textAlign: 'center',
+      maxWidth: 400 * scale,
+      marginBottom: 40 * scale,
+      lineHeight: 20 * scale,
+    },
+    gpsButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.bgLiftHi,
+      borderWidth: 1.5 * scale,
+      borderColor: colors.highlight,
+      borderRadius: 14 * scale,
+      paddingVertical: 16 * scale,
+      paddingHorizontal: 32 * scale,
+      marginBottom: 24 * scale,
+      shadowColor: colors.highlight,
+      shadowOffset: { width: 0, height: 4 * scale },
+      shadowOpacity: 0.25,
+      shadowRadius: 12 * scale,
+      elevation: 6,
+    },
+    gpsButtonIcon: {
+      fontSize: 22 * scale,
+      marginRight: 12 * scale,
+    },
+    gpsButtonText: {
+      fontFamily: 'Inter_600SemiBold',
+      fontSize: 18 * scale,
+      color: colors.highlight,
+      letterSpacing: 0.5 * scale,
+    },
+    dividerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 24 * scale,
+      width: '80%',
+      maxWidth: 350 * scale,
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1 * scale,
+      backgroundColor: colors.pinstripe,
+    },
+    dividerText: {
+      fontFamily: 'Inter_500Medium',
+      fontSize: 13 * scale,
+      color: colors.inkMuted,
+      marginHorizontal: 16 * scale,
+      letterSpacing: 2 * scale,
+    },
+    manualToggle: {
+      borderWidth: 1 * scale,
+      borderColor: colors.glassBorder,
+      borderRadius: 14 * scale,
+      paddingVertical: 14 * scale,
+      paddingHorizontal: 28 * scale,
+    },
+    manualToggleText: {
+      fontFamily: 'Inter_500Medium',
+      fontSize: 16 * scale,
+      color: colors.inkMuted,
+      letterSpacing: 0.5 * scale,
+    },
+    manualForm: {
+      width: '100%',
+      maxWidth: 380 * scale,
+      alignItems: 'center',
+    },
+    inputRow: {
+      width: '100%',
+      marginBottom: 16 * scale,
+    },
+    inputLabel: {
+      fontFamily: 'Inter_500Medium',
+      fontSize: 13 * scale,
+      color: colors.inkMuted,
+      marginBottom: 6 * scale,
+      letterSpacing: 1 * scale,
+      textTransform: 'uppercase',
+    },
+    input: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 18 * scale,
+      color: colors.ink,
+      borderWidth: 1.5 * scale,
+      borderColor: colors.glassBorderHi,
+      borderRadius: 10 * scale,
+      backgroundColor: colors.bgLift,
+      paddingVertical: 14 * scale,
+      paddingHorizontal: 16 * scale,
+    },
+    submitButton: {
+      backgroundColor: colors.highlight,
+      borderRadius: 14 * scale,
+      paddingVertical: 14 * scale,
+      paddingHorizontal: 40 * scale,
+      marginTop: 8 * scale,
+      shadowColor: colors.highlight,
+      shadowOffset: { width: 0, height: 4 * scale },
+      shadowOpacity: 0.3,
+      shadowRadius: 10 * scale,
+      elevation: 6,
+    },
+    submitButtonText: {
+      fontFamily: 'Inter_700Bold',
+      fontSize: 17 * scale,
+      color: colors.bgDeep,
+      letterSpacing: 1 * scale,
+    },
+    loadingText: {
+      marginTop: 120 * scale,
+      fontFamily: 'Inter_500Medium',
+      fontSize: 20 * scale,
+      color: colors.highlight,
+      letterSpacing: 1 * scale,
+    },
+    errorBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(192, 72, 72, 0.15)',
+      borderWidth: 1 * scale,
+      borderColor: colors.ashubha,
+      borderRadius: 12 * scale,
+      paddingVertical: 12 * scale,
+      paddingHorizontal: 18 * scale,
+      marginBottom: 24 * scale,
+      maxWidth: 460 * scale,
+    },
+    errorIcon: {
+      fontSize: 20 * scale,
+      marginRight: 12 * scale,
+    },
+    errorText: {
+      fontFamily: 'Inter_500Medium',
+      fontSize: 14 * scale,
+      color: colors.ashubha,
+      flex: 1,
+      lineHeight: 20 * scale,
+    },
+  });
+}

@@ -1,0 +1,37 @@
+appId: "com.anonymous.Vedic" # Replace with actual app ID if different
+---
+- launchApp:
+    clearState: true
+    
+# Wait for the Location Prompt screen to appear
+- assertVisible: "Use Current Location"
+
+# Simulate entering a location manually to bypass GPS
+- tapOn: "Enter Coordinates Manually"
+- tapOn: "City Name"
+- inputText: "Ujjain"
+- tapOn: "Latitude (°N)"
+- inputText: "23.1765"
+- tapOn: "Longitude (°E)"
+- inputText: "75.7885"
+- tapOn: "Set Location"
+
+# Wait for the main dial to load
+- extendedWaitUntil:
+    visible: "विक्रमादित्य वैदिक घड़ी" # Part of top/bottom bars or main dial
+    timeout: 10000
+
+# Verify the dial components are visible
+- assertVisible: "IST" # Part of time display
+- assertVisible: "Ujjain" # Ensure location is registered in BottomStrip
+
+# Simulate device rotation to verify responsive re-layout
+# (This requires Maestro to send an orientation change command)
+- evalScript: |
+    // Maestro JS evaluation to test orientation isn't fully native yet, 
+    // but we can simulate interacting with different parts of the screen
+    // to ensure they aren't hidden by a broken layout.
+
+# Tap a few points that should be active and visible in a healthy layout
+- tapOn:
+    point: "50%, 50%" # Tap center of dial

@@ -11,6 +11,8 @@
  *   • A central bindu dot
  *
  * All in SVG so it scales cleanly on any DPI.
+ * Stroke widths are now proportional to size for consistent rendering
+ * across mobile → billboard.
  */
 
 import React from 'react';
@@ -31,6 +33,9 @@ export function YantraRosette({ size, opacity = 0.22, color }: Props): JSX.Eleme
   const outerR = half * 0.92;
   const petalLen = half * 0.65;
   const petalWid = half * 0.22;
+
+  // Scale stroke widths proportionally — reference design is ~60px size
+  const strokeScale = Math.max(0.3, size / 60);
 
   const strokeColor = color || colors.giltDeep;
   const petalStroke = color || colors.giltLight;
@@ -69,7 +74,7 @@ export function YantraRosette({ size, opacity = 0.22, color }: Props): JSX.Eleme
         cy={half}
         r={outerR}
         stroke={strokeColor}
-        strokeWidth={1.4}
+        strokeWidth={1.4 * strokeScale}
         fill="none"
       />
       <Circle
@@ -77,7 +82,7 @@ export function YantraRosette({ size, opacity = 0.22, color }: Props): JSX.Eleme
         cy={half}
         r={outerR * 0.7}
         stroke={strokeColor}
-        strokeWidth={0.8}
+        strokeWidth={0.8 * strokeScale}
         fill="none"
       />
       {/* Petals */}
@@ -87,7 +92,7 @@ export function YantraRosette({ size, opacity = 0.22, color }: Props): JSX.Eleme
           d={d}
           fill="none"
           stroke={petalStroke}
-          strokeWidth={1.2}
+          strokeWidth={1.2 * strokeScale}
           strokeLinecap="round"
           strokeLinejoin="round"
         />

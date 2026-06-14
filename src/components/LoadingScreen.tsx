@@ -1,8 +1,15 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, View, Text } from 'react-native';
+import { Animated, Easing, View, Text } from 'react-native';
+import { useWindowDimensions } from 'react-native';
 import { colors } from '../theme';
 
 export function LoadingScreen(): JSX.Element {
+  const { width, height } = useWindowDimensions();
+  const isPortrait = height > width;
+  const scale = isPortrait
+    ? Math.max(0.5, width / 414)
+    : Math.max(0.5, width / 1024);
+
   const spinValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -21,49 +28,43 @@ export function LoadingScreen(): JSX.Element {
     outputRange: ['0deg', '360deg'],
   });
 
+  const ringSize = 120 * scale;
+  const innerSize = 104 * scale;
+
   return (
-    <View style={styles.container}>
+    <View style={{
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.bgDeep,
+    }}>
       <Animated.View
-        style={[
-          styles.spinnerRing,
-          { transform: [{ rotate: spin }] },
-        ]}
+        style={{
+          width: ringSize,
+          height: ringSize,
+          borderRadius: ringSize / 2,
+          borderWidth: 8 * scale,
+          borderColor: colors.bgLiftHi,
+          borderTopColor: colors.highlight,
+          borderRightColor: colors.highlightSoft,
+          position: 'absolute',
+          transform: [{ rotate: spin }],
+        }}
       />
-      <View style={styles.innerCircle} />
-      <Text style={styles.text}>Loading Vedic Clock...</Text>
+      <View style={{
+        width: innerSize,
+        height: innerSize,
+        borderRadius: innerSize / 2,
+        backgroundColor: colors.bgDeep,
+        position: 'absolute',
+      }} />
+      <Text style={{
+        marginTop: 200 * scale,
+        color: colors.highlight,
+        fontFamily: 'Inter_500Medium', // Or standard system font if Inter isn't loaded yet
+        fontSize: 24 * scale,
+        letterSpacing: 1 * scale,
+      }}>Loading Vedic Clock...</Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bgDeep,
-  },
-  spinnerRing: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 8,
-    borderColor: colors.bgLiftHi,
-    borderTopColor: colors.highlight,
-    borderRightColor: colors.highlightSoft,
-    position: 'absolute',
-  },
-  innerCircle: {
-    width: 104,
-    height: 104,
-    borderRadius: 52,
-    backgroundColor: colors.bgDeep,
-    position: 'absolute',
-  },
-  text: {
-    marginTop: 200,
-    color: colors.highlight,
-    fontFamily: 'Inter_500Medium', // Or standard system font if Inter isn't loaded yet
-    fontSize: 24,
-    letterSpacing: 1,
-  },
-});

@@ -1,10 +1,17 @@
 import { useWindowDimensions, PixelRatio } from 'react-native';
 
+/**
+ * Device tier classification based on the smaller screen dimension.
+ * Used by components that need tier-specific layout decisions.
+ */
+export type DeviceTier = 'mobile' | 'tablet' | 'desktop' | 'tv' | 'billboard';
+
 export interface ResponsiveConfig {
   width: number;
   height: number;
   isPortrait: boolean;
   scale: number;
+  tier: DeviceTier;
   topBarHeight: number;
   sunBarHeight: number;
   bottomStripHeight: number;
@@ -19,17 +26,26 @@ export function useResponsive(): ResponsiveConfig {
   // Reference width for design scaling:
   // - Landscape target: 1024px
   // - Portrait target: 414px (typical mobile width)
+  // No upper clamp — let the UI grow for TVs and ad boards.
   const scale = isPortrait
-    ? Math.min(1.25, Math.max(0.75, width / 414))
-    : Math.min(1.4, Math.max(0.7, width / 1024));
+    ? Math.max(0.5, width / 414)
+    : Math.max(0.5, width / 1024);
 
-  // Scaled bar heights, bounded within sensible limits so they look sharp
-  const topBarHeight = Math.max(52, Math.min(88, 64 * scale));
-  const sunBarHeight = Math.max(38, Math.min(68, 48 * scale));
-  const bottomStripHeight = Math.max(52, Math.min(88, 64 * scale));
+  // Device tier based on the smaller dimension
+  const minDim = Math.min(width, height);
+  const tier: DeviceTier =
+    minDim < 600 ? 'mobile' :
+    minDim < 1024 ? 'tablet' :
+    minDim < 1600 ? 'desktop' :
+    minDim < 3000 ? 'tv' : 'billboard';
+
+  // Scaled bar heights — no upper clamp so they grow on TVs/billboards
+  const topBarHeight = Math.max(40, 64 * scale);
+  const sunBarHeight = Math.max(32, 48 * scale);
+  const bottomStripHeight = Math.max(40, 64 * scale);
 
   // Fluid spacing factor
-  const spacing = Math.max(8, Math.min(24, 16 * scale));
+  const spacing = Math.max(4, 16 * scale);
 
   /**
    * Scales a font size dynamically by the screen scale factor, 
@@ -45,6 +61,7 @@ export function useResponsive(): ResponsiveConfig {
     height,
     isPortrait,
     scale,
+    tier,
     topBarHeight,
     sunBarHeight,
     bottomStripHeight,

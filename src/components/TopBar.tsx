@@ -54,17 +54,17 @@ export function TopBar({ state }: Props): JSX.Element {
   const { vara } = state.panchang;
 
   return (
-    <View style={[styles.container, glass.panel, { height: topBarHeight }]}>
-      <View style={[styles.row, { justifyContent: 'center', gap: 500 * scale }]}>
-        <View style={[styles.cornerStack, { width: 380 * scale }]}>
+    <View style={[styles.container, glass.panel, { height: topBarHeight, paddingHorizontal: 12 * scale, marginTop: 40 * scale }]}>
+      <View style={[styles.row, { justifyContent: 'space-between' }]}>
+        <View style={[styles.cornerStack, { width: 260 * scale }]}>
           <Image
             source={require('../../assets/images/corner_assest.png')}
-            style={[styles.cornerBg, { width: 450 * scale, height: 260 * scale }]}
+            style={[styles.cornerBg, { width: 280 * scale, height: 140 * scale }]}
             resizeMode="stretch"
           />
           <View style={styles.cornerContent}>
-            <EngravedText text={t12} fontSize={28 * scale} />
-            <Text style={[styles.timeSmall, { fontSize: 20 * scale, marginTop: 6 * scale, marginBottom: 6 * scale }]}>{`${t24} IST`}</Text>
+            <EngravedText text={t12} fontSize={16 * scale} />
+            <Text style={[styles.timeSmall, { fontSize: 11 * scale, marginTop: 4 * scale, marginBottom: 4 * scale }]}>{`${t24} IST`}</Text>
           </View>
         </View>
         <View style={{ alignItems: 'center' }}>
@@ -74,15 +74,15 @@ export function TopBar({ state }: Props): JSX.Element {
             </Text>
           ) : null}
         </View>
-        <View style={[styles.cornerStack, { width: 380 * scale }]}>
+        <View style={[styles.cornerStack, { width: 260 * scale }]}>
           <Image
             source={require('../../assets/images/corner_assest.png')}
-            style={[styles.cornerBg, { width: 450 * scale, height: 260 * scale }]}
+            style={[styles.cornerBg, { width: 280 * scale, height: 140 * scale }]}
             resizeMode="stretch"
           />
           <View style={styles.cornerContent}>
-            <EngravedText text={dateStrHi} fontSize={28 * scale} />
-            <Text style={[styles.dateSmall, { fontSize: 20 * scale, marginTop: 6 * scale, marginBottom: 6 * scale }]} numberOfLines={1}>{vara.nameHi}</Text>
+            <EngravedText text={dateStrHi} fontSize={16 * scale} />
+            <Text style={[styles.dateSmall, { fontSize: 11 * scale, marginTop: 4 * scale, marginBottom: 4 * scale }]} numberOfLines={1}>{vara.nameHi}</Text>
           </View>
         </View>
       </View>
@@ -115,8 +115,6 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     overflow: 'visible',
-    paddingHorizontal: 12,
-    marginTop: 40,
   },
   cornerLeft: {
     position: 'absolute',
@@ -144,8 +142,6 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-
   },
 
 

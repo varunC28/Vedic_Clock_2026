@@ -78,7 +78,7 @@ export default function App(): JSX.Element {
 
   const state = useVedicClock();
   const responsive = useResponsive();
-  const { width, height, isPortrait, spacing } = responsive;
+  const { width, height, isPortrait, spacing, tier, scale } = responsive;
 
   // Phase 1: Loading assets, fonts, and checking stored location
   if (!fontsLoaded || !assetsLoaded || locationLoading) {
@@ -95,9 +95,12 @@ export default function App(): JSX.Element {
     ? (width - spacing * 3) / 2
     : Math.min(220, width * 0.2) * responsive.scale;
 
-  // Force dial to 95% of available physical space
+  // Force dial to 95% of available physical space.
+  // Use a tier-aware divisor: on mobile the dial needs more room relative
+  // to bars; on TV / billboard the bars are proportionally smaller but the SVG extends 1.7x the dial size.
   const maxDialPhysicalSize = Math.min(width, height) * 0.95;
-  const dialSize = maxDialPhysicalSize / 1.55; // Decreased from 1.70 to scale the dial up
+  const dialDivisor = tier === 'mobile' ? 1.45 : tier === 'tablet' ? 1.65 : 2.0;
+  const dialSize = maxDialPhysicalSize / dialDivisor;
 
   return (
     <View style={styles.root} onLayout={onLayoutRoot}>
@@ -122,12 +125,12 @@ export default function App(): JSX.Element {
             </View>
           )}
 
-          <View style={[styles.topSection, { top: spacing + 290 }]}>
+          <View style={[styles.topSection, { top: isPortrait ? spacing : -10 }]}>
             <TopBar state={state} />
             {/* <SunBar state={state} /> */}
           </View>
 
-          <View style={[styles.bottomSection, { bottom: spacing + 340 }]}>
+          <View style={[styles.bottomSection, { bottom: spacing }]}>
             <BottomStrip state={state} location={location} onChangeLocation={clearLocation} />
           </View>
         </View>
@@ -175,7 +178,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 200,
+    minWidth: 100,
   },
   bottomSection: {
     position: 'absolute',
