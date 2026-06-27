@@ -14,8 +14,8 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Image, Platform, StyleSheet, Text, View, PixelRatio, Animated } from 'react-native';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { StyleSheet, Text, View, PixelRatio, Animated, Image } from 'react-native';
+import { Earth3D } from './Earth3D';
 import Svg, { Circle, G, Path, Defs, ClipPath, Text as SvgText, TextPath, Image as SvgImage } from 'react-native-svg';
 import { MUHURTAS } from '../data/muhurtas';
 import { VedicClockState } from '../models';
@@ -34,7 +34,6 @@ interface Props {
 }
 
 const FRAME_ONLY = require('../../assets/images/OnlyFrame.png');
-const EARTH_VIDEO = require('../../assets/Rotating_Earth.mp4');
 const CORNER_ASSET = require('../../assets/images/corner_assest.png');
 
 interface AnimatedIconProps {
@@ -165,59 +164,6 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
     return () => cancelAnimationFrame(frameId);
   }, [targetKaranaSlot, targetYogaFraction]);
 
-  // ── Rotating Earth video player ──────────────────────────────────────
-  const appState = useRef(AppState.currentState);
-
-  const earthPlayer = useVideoPlayer(EARTH_VIDEO, (player) => {
-    player.loop = true;
-    player.muted = true;
-    player.staysActiveInBackground = true;
-    player.play();
-  });
-
-  // Robust looping fallback
-  useEffect(() => {
-    const sub = earthPlayer.addListener('playToEnd', () => {
-      earthPlayer.play();
-    });
-    return () => sub.remove();
-  }, [earthPlayer]);
-
-  // Playback recovery on app focus
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', nextAppState => {
-      if (
-        appState.current.match(/inactive|background/) &&
-        nextAppState === 'active'
-      ) {
-        earthPlayer.play();
-      }
-      appState.current = nextAppState;
-    });
-
-    if (Platform.OS === 'web') {
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
-          earthPlayer.play();
-        }
-      };
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-      return () => {
-        subscription.remove();
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-      };
-    }
-
-    return () => {
-      subscription.remove();
-    };
-  }, [earthPlayer]);
-
-  // Initial play trigger
-  useEffect(() => {
-    earthPlayer.play();
-  }, [earthPlayer]);
-
   // Scale factor for text and spacing (normalized to size 600)
   const scale = size / 600;
   const fontScale = PixelRatio.getFontScale();
@@ -296,31 +242,39 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
   const svgHalf = svgSize / 2;
   const svgOffset = (svgSize - size) / 2;
 
-  const r_inner_bottom = half * 1.28;
-  const r_outer_bottom = half * 1.54;
-  const r_text_bottom = half * 1.41;
+  // ── Unified arch layout config ──────────────────────────────────
+  const ARCH_BUDGET_DEG = 40;       // uniform angular budget for all 6 arches (+10% from 36°)
+  const HALF_BUDGET = ARCH_BUDGET_DEG / 2; // 20° from center to edge
 
-  const r_inner_top = half * 1.34;
-  const r_outer_top = half * 1.60;
-  const r_text_top = half * 1.47;
+  // Bottom half radii (shifted closer to center dial)
+  const r_inner_bottom = half * 1.16;
+  const r_outer_bottom = half * 1.40;
+  const r_text_bottom = half * 1.28;
 
-  // Left side: centered at 135 degrees.
-  const leftWedgeStart = 105 * Math.PI / 180;
-  const leftWedgeEnd = 165 * Math.PI / 180;
-  const leftTextStart = 165 * Math.PI / 180;
-  const leftTextEnd = 105 * Math.PI / 180;
+  // Top half radii (shifted closer to center dial)
+  const r_inner_top = half * 1.22;
+  const r_outer_top = half * 1.46;
+  const r_text_top = half * 1.34;
 
-  // Right side: centered at 45 degrees.
-  const rightWedgeStart = 15 * Math.PI / 180;
-  const rightWedgeEnd = 75 * Math.PI / 180;
-  const rightTextStart = 75 * Math.PI / 180;
-  const rightTextEnd = 15 * Math.PI / 180;
+  // Bottom-left: centered at 135° (Chandra Rashi). 135 ± 20 = 115°–155°
+  const leftWedgeStart = 115 * Math.PI / 180;
+  const leftWedgeEnd = 155 * Math.PI / 180;
+  const leftTextStart = 155 * Math.PI / 180;
+  const leftTextEnd = 115 * Math.PI / 180;
 
-  const topLeftWedgeStart = 195 * Math.PI / 180;
-  const topLeftWedgeEnd = 255 * Math.PI / 180;
+  // Bottom-right: centered at 45° (Surya Rashi). 45 ± 20 = 25°–65°
+  const rightWedgeStart = 25 * Math.PI / 180;
+  const rightWedgeEnd = 65 * Math.PI / 180;
+  const rightTextStart = 65 * Math.PI / 180;
+  const rightTextEnd = 25 * Math.PI / 180;
 
-  const topRightWedgeStart = 285 * Math.PI / 180;
-  const topRightWedgeEnd = 345 * Math.PI / 180;
+  // Top-left: centered at 225° (Nakshatra). 225 ± 20 = 205°–245°
+  const topLeftWedgeStart = 205 * Math.PI / 180;
+  const topLeftWedgeEnd = 245 * Math.PI / 180;
+
+  // Top-right: centered at 315° (Tithi). 315 ± 20 = 295°–335°
+  const topRightWedgeStart = 295 * Math.PI / 180;
+  const topRightWedgeEnd = 335 * Math.PI / 180;
 
   const leftArchWedge = arcWedge(svgHalf, svgHalf, r_inner_bottom, r_outer_bottom, leftWedgeStart, leftWedgeEnd);
   const rightArchWedge = arcWedge(svgHalf, svgHalf, r_inner_bottom, r_outer_bottom, rightWedgeStart, rightWedgeEnd);
@@ -336,12 +290,12 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
   const rightTextCx = svgHalf + r_text_bottom * Math.cos(45 * Math.PI / 180);
   const rightTextCy = svgHalf + r_text_bottom * Math.sin(45 * Math.PI / 180);
 
-  // Yoga progress arc calculations (centered at 90 degrees, spanning 105 to 75 degrees)
+  // Yoga progress arc (centered at 90°, same 40° budget). 90 ± 20 = 70°–110°
   const targetPercentage = Math.round(targetYogaFraction * 100);
 
-  const yogaStartAngleDeg = 105;
-  const yogaEndAngleDeg = 75;
-  const yogaAngleSpan = yogaStartAngleDeg - yogaEndAngleDeg; // 30 degrees
+  const yogaStartAngleDeg = 110;    // 90 + 20
+  const yogaEndAngleDeg = 70;       // 90 - 20
+  const yogaAngleSpan = yogaStartAngleDeg - yogaEndAngleDeg; // 40 degrees
 
   // Use target values for the label text and position
   const yogaLabelAngleDeg = yogaStartAngleDeg - targetYogaFraction * yogaAngleSpan;
@@ -365,14 +319,14 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
     });
   }
 
-  // Karana calculations (centered at 270 degrees, spanning 255 to 285 degrees)
+  // Karana calculations (centered at 270°, same 40° budget). 270 ± 20 = 250°–290°
   const karanaIsFixed = state.panchang?.karana?.isFixed ?? false;
   const karanaSubMeaning = karanaIsFixed ? 'स्थिर' : 'चर';
 
-  // Tick line parameters
-  const karanaStartAngleDeg = 252.5;
-  const karanaEndAngleDeg = 287.5;
-  const karanaAngleSpan = karanaEndAngleDeg - karanaStartAngleDeg; // 35 degrees
+  // Tick line parameters — equal 40° span matching all other arches
+  const karanaStartAngleDeg = 250;  // 270 - 20
+  const karanaEndAngleDeg = 290;    // 270 + 20
+  const karanaAngleSpan = karanaEndAngleDeg - karanaStartAngleDeg; // 40 degrees
   const r_karana_tick_start = r_text_top + 30 * scale;
   const r_karana_tick_end = r_text_top + 44 * scale;
   const r_karana_label = r_text_top + 58 * scale;
@@ -399,7 +353,7 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
   const karanaLabelX = svgHalf + r_karana_label * Math.cos(activeAngleRad);
   const karanaLabelY = svgHalf + r_karana_label * Math.sin(activeAngleRad);
 
-  const renderCurvedWords = (text: string, cx: number, cy: number, r: number, midAngleDeg: number, isTopHalf: boolean = false, showBg: boolean = false, fontSizeOverride?: number) => {
+  const renderCurvedWords = (text: string, cx: number, cy: number, r: number, midAngleDeg: number, isTopHalf: boolean = false, showBg: boolean = false, fontSizeOverride?: number, maxSpanDeg?: number) => {
     // 1. Calculate approximate visual span for the background track
     const getVisualLength = (str: string) => {
       const baseStr = str.replace(/[\u0901-\u0903\u093E-\u094C\u094E-\u0954\u0962\u0963\u094D]/g, '');
@@ -422,9 +376,10 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
     });
     visualTotalChars = currentVisualIndex - spaceWidth;
 
-    const degreesPerVisualChar = 3.3;
-    const paddingDegrees = 5; // Tighter padding
-    const span = Math.min(visualTotalChars * degreesPerVisualChar + paddingDegrees, 50);
+    const degreesPerVisualChar = 2.8;
+    const paddingDegrees = 4;
+    const budgetDeg = maxSpanDeg ?? 50;
+    const span = Math.min(visualTotalChars * degreesPerVisualChar + paddingDegrees, budgetDeg);
 
     // Shift radius inwards for top-half arches to vertically center the text
     const effectiveR = isTopHalf ? r - (15 * scale) : r;
@@ -449,7 +404,7 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
           <Path
             d={bgPath}
             stroke="rgba(0,0,0,0.65)"
-            strokeWidth={52 * scale}
+            strokeWidth={37 * scale}
             strokeLinecap="round"
             fill="none"
           />
@@ -468,7 +423,7 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
             <G key={i} x={x} y={y} rotation={rotation} origin="0, 0">
               <SvgText
                 fill={colors.highlight}
-                fontSize={fontSizeOverride || 32 * scale}
+                fontSize={fontSizeOverride || 26 * scale}
                 fontWeight="bold"
                 textAnchor="middle"
                 alignmentBaseline="middle"
@@ -485,7 +440,7 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
   return (
     <View style={[styles.wrapper, { width: size, height: size, transform: [{ translateY: 0 }] }]}>
 
-      {/* Layer 1: Rotating Earth Video — circular-clipped behind the frame */}
+      {/* Layer 1: 3D Earth — circular-clipped behind the frame */}
 
       <View
         style={{
@@ -496,14 +451,10 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
           top: maskOffset + videoOffset,
           borderRadius: videoSize / 2,
           overflow: 'hidden',
+          backgroundColor: '#000', // Black background for space behind the earth
         }}
       >
-        <VideoView
-          player={earthPlayer}
-          style={{ width: videoSize, height: videoSize }}
-          contentFit="cover"
-          nativeControls={false}
-        />
+        <Earth3D size={videoSize} />
       </View>
 
       {/* Layer 2: Full UI Frame Overlay */}
@@ -556,10 +507,10 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
 
         {/* Left Arch (Moon Rashi) */}
 
-        {renderCurvedWords(`चन्द्र राशि : ${state.panchang?.moonRashi?.nameHi ?? ''}`, svgHalf, svgHalf, r_text_bottom, 135, false, true)}
+        {renderCurvedWords(`चन्द्र राशि : ${state.panchang?.moonRashi?.nameHi ?? ''}`, svgHalf, svgHalf, r_text_bottom, 135, false, true, undefined, ARCH_BUDGET_DEG)}
 
         {/* Bottom-Center Arch (Yoga) */}
-        {renderCurvedWords(`योग : ${state.panchang?.yoga?.nameHi ?? ''}`, svgHalf, svgHalf, r_text_bottom, 90, false, true)}
+        {renderCurvedWords(`योग : ${state.panchang?.yoga?.nameHi ?? ''}`, svgHalf, svgHalf, r_text_bottom, 90, false, true, undefined, ARCH_BUDGET_DEG)}
 
         {/* Yoga Progressive Bar */}
         {yogaTicks.map((tick) => (
@@ -572,18 +523,18 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
         ))}
 
         {/* Yoga Percentage Label */}
-        {renderCurvedWords(`${targetPercentage}/100`, svgHalf, svgHalf, r_yoga_label, yogaLabelAngleDeg, false, false, 22 * scale)}
+        {renderCurvedWords(`${targetPercentage}/100`, svgHalf, svgHalf, r_yoga_label, yogaLabelAngleDeg, false, false, 20 * scale)}
 
         {/* Right Arch (Sun Rashi) */}
 
-        {renderCurvedWords(`सूर्य राशि : ${state.panchang?.sunRashi?.nameHi ?? ''}`, svgHalf, svgHalf, r_text_bottom, 45, false, true)}
+        {renderCurvedWords(`सूर्य राशि : ${state.panchang?.sunRashi?.nameHi ?? ''}`, svgHalf, svgHalf, r_text_bottom, 45, false, true, undefined, ARCH_BUDGET_DEG)}
 
         {/* Top-Left Arch (Nakshatra) */}
 
-        {renderCurvedWords(`नक्षत्र : ${state.panchang?.nakshatra?.nameHi ?? ''}`, svgHalf, svgHalf, r_text_top, 225, true, true)}
+        {renderCurvedWords(`नक्षत्र : ${state.panchang?.nakshatra?.nameHi ?? ''}`, svgHalf, svgHalf, r_text_top, 225, true, true, undefined, ARCH_BUDGET_DEG)}
 
         {/* Karana (Top-Center) */}
-        {renderCurvedWords(`करण : ${state.panchang?.karana?.nameHi ?? ''}`, svgHalf, svgHalf, r_text_top, 270, true, true)}
+        {renderCurvedWords(`करण : ${state.panchang?.karana?.nameHi ?? ''}`, svgHalf, svgHalf, r_text_top, 270, true, true, undefined, ARCH_BUDGET_DEG)}
 
         {karanaTicks.map((tick) => (
           <Path
@@ -595,12 +546,12 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
         ))}
 
         {/* Karana Active Slot Label */}
-        {renderCurvedWords(`${targetKaranaSlot}/60`, svgHalf, svgHalf, r_karana_label + (15 * scale), activeAngleDeg, true, false, 22 * scale)}
+        {renderCurvedWords(`${targetKaranaSlot}/60`, svgHalf, svgHalf, r_karana_label + (15 * scale), activeAngleDeg, true, false, 20 * scale)}
 
         {/* Top-Right Arch (Tithi) */}
 
         {/* Top-Right Text (Tithi) */}
-        {renderCurvedWords(`तिथि : ${state.panchang?.tithi?.nameHi ?? ''}`, svgHalf, svgHalf, r_text_top, 315, true, true)}
+        {renderCurvedWords(`तिथि : ${state.panchang?.tithi?.nameHi ?? ''}`, svgHalf, svgHalf, r_text_top, 315, true, true, undefined, ARCH_BUDGET_DEG)}
 
       </Svg>
 
