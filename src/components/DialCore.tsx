@@ -570,7 +570,7 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
         ]}
         pointerEvents="none"
       >
-        <View style={{ transform: [{ translateY: 44 * scale }], alignItems: 'center' }}>
+        <View style={{ transform: [{ translateY: 58 * scale }], alignItems: 'center' }}>
           <View style={[styles.digitsRow, { alignItems: 'flex-start' }]}>
             <View style={{ alignItems: 'center' }}>
               <HeroDigits text={mm} scale={scale * 0.65} />
@@ -587,32 +587,27 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
               <Text style={[styles.rashiLabel, { fontSize: 24 * scale, marginTop: 6 * scale, letterSpacing: 1 * scale }]}>काष्ठा</Text>
             </View>
           </View>
-          <Text
-            style={[
-              styles.rashiLabel,
-              {
-                fontSize: 24 * scale,
-                marginTop: 16 * scale,
-                letterSpacing: 1 * scale,
-              }
-            ]}
-            numberOfLines={1}
-          >
-            {state.muhurta?.devanagari ?? ''} · {state.muhurta?.name ?? ''}
-          </Text>
-          <Text
-            style={[
-              styles.rashiLabel,
-              {
-                fontSize: 24 * scale,
-                marginTop: 8 * scale,
-                letterSpacing: 1 * scale,
-              }
-            ]}
-            numberOfLines={1}
-          >
-            देवता : {state.muhurta ? (DEITY_HI[state.muhurta.deity] || state.muhurta.deity) : ''}
-          </Text>
+          <View style={{ marginTop: 8 * scale }}>
+            <EngravedText 
+              text={`${state.muhurta?.devanagari ?? ''} · ${state.muhurta?.name ?? ''}`} 
+              fontSize={24 * scale} 
+              color={colors.highlight}
+            />
+          </View>
+          <View style={{ marginTop: 2 * scale }}>
+            <EngravedText 
+              text={`देवता : ${state.muhurta ? (DEITY_HI[state.muhurta.deity] || state.muhurta.deity) : ''}`} 
+              fontSize={24 * scale} 
+              color={colors.highlight}
+            />
+          </View>
+          <View style={{ marginTop: 2 * scale }}>
+            <EngravedText 
+              text={state.panchang?.tithi?.paksha === 'shukla' ? 'शुक्ल पक्ष' : state.panchang?.tithi?.paksha === 'krishna' ? 'कृष्ण पक्ष' : ''} 
+              fontSize={24 * scale} 
+              color={colors.highlight}
+            />
+          </View>
         </View>
       </View>
 
