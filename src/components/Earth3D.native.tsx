@@ -12,8 +12,8 @@
  */
 
 import React, { useRef, useMemo } from 'react';
-import { Canvas, useFrame, useLoader, useThree, extend } from '@react-three/fiber/native';
-import { TextureLoader } from 'expo-three';
+import { Canvas, useFrame, useThree, extend } from '@react-three/fiber/native';
+import { useTexture } from '@react-three/drei/native';
 import * as THREE from 'three';
 import { View, Platform } from 'react-native';
 
@@ -39,9 +39,8 @@ interface Earth3DProps {
 function EarthSphere(): React.JSX.Element {
   const meshRef = useRef<THREE.Mesh>(null);
 
-  // expo-three's TextureLoader internally calls resolveAsync() which
-  // handles numeric Metro asset IDs natively — pass require() results directly
-  const [dayMap, normalMap, specularMap, nightMap] = useLoader(TextureLoader, [
+  // @react-three/drei's useTexture handles Expo assets natively in Android Release
+  const [dayMap, normalMap, specularMap, nightMap] = useTexture([
     EARTH_TEXTURE,
     EARTH_NORMAL,
     EARTH_SPECULAR,
@@ -133,7 +132,7 @@ function EarthSphere(): React.JSX.Element {
  */
 function CloudSphere(): React.JSX.Element {
   const meshRef = useRef<THREE.Mesh>(null);
-  const cloudMap = useLoader(TextureLoader, EARTH_CLOUDS);
+  const cloudMap = useTexture(EARTH_CLOUDS);
 
   useFrame((_state, delta) => {
     if (meshRef.current) {
