@@ -17,6 +17,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Platform,
 } from 'react-native';
 import * as Location from 'expo-location';
 import { LocationConfig, DEFAULT_LOCATION } from '../config';
@@ -57,40 +58,64 @@ export function LocationPromptScreen({ onLocationSelected }: Props): JSX.Element
 
   const s = useMemo(() => getStyles(scale), [scale]);
 
+  // Helper function to resolve city name across platforms
+  async function resolveCityName(latitude: number, longitude: number): Promise<{ city: string; cityHi: string }> {
+    let city = `${latitude.toFixed(2)}°N, ${longitude.toFixed(2)}°E`;
+    let cityHi = city;
+
+    if (Platform.OS !== 'web') {
+      try {
+        const [place] = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (place) {
+          city = place.city || place.district || place.subregion || place.name || place.region || city;
+          cityHi = city; // Fallback for native without hi translation
+        }
+      } catch {
+        // Native fallback failed
+      }
+    }
+
+    if (Platform.OS === 'web' || city === `${latitude.toFixed(2)}°N, ${longitude.toFixed(2)}°E`) {
+      try {
+        const resEn = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&email=vedicclockapp@gmail.com&accept-language=en`);
+        const dataEn = await resEn.json();
+        if (dataEn && dataEn.address) {
+          city = dataEn.address.city || dataEn.address.city_district || dataEn.address.county || dataEn.address.state_district || city;
+        }
+
+        const resHi = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&email=vedicclockapp@gmail.com&accept-language=hi`);
+        const dataHi = await resHi.json();
+        if (dataHi && dataHi.address) {
+          cityHi = dataHi.address.city || dataHi.address.city_district || dataHi.address.county || dataHi.address.state_district || city;
+        }
+      } catch {
+        // Offline or API blocked — fall back to coordinate string
+      }
+    }
+
+    return { city, cityHi };
+  }
+
   async function handleGPS() {
-    setErrorMessage(null);
-    setLoading(true);
     try {
+      setLoading(true);
+      setErrorMessage(null);
+      
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setErrorMessage('Location permission denied. Please enter your coordinates manually below.');
         setShowManual(true);
-        setLoading(false);
         return;
       }
       const pos = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
 
-      // Try reverse geocoding to get city name
-      let city = `${pos.coords.latitude.toFixed(2)}°N, ${pos.coords.longitude.toFixed(2)}°E`;
-      try {
-        const [place] = await Location.reverseGeocodeAsync({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-        });
-        if (place?.city) {
-          city = place.city;
-        } else if (place?.subregion) {
-          city = place.subregion;
-        }
-      } catch {
-        // Offline — fall back to coordinate string
-      }
+      const { city, cityHi } = await resolveCityName(pos.coords.latitude, pos.coords.longitude);
 
       const loc: LocationConfig = {
         city,
-        cityHi: city,
+        cityHi,
         latitude: pos.coords.latitude,
         longitude: pos.coords.longitude,
         heightMeters: pos.coords.altitude ?? DEFAULT_LOCATION.heightMeters,
@@ -105,7 +130,7 @@ export function LocationPromptScreen({ onLocationSelected }: Props): JSX.Element
     }
   }
 
-  function handleManualSubmit() {
+  async function handleManualSubmit() {
     setErrorMessage(null);
     const lat = parseFloat(latText);
     const lon = parseFloat(lonText);
@@ -117,15 +142,27 @@ export function LocationPromptScreen({ onLocationSelected }: Props): JSX.Element
       setErrorMessage('Coordinates are outside India. Please enter values within Lat: 6°–38°N, Lon: 68°–98°E.');
       return;
     }
-    const city = cityName.trim() || `${lat.toFixed(2)}°N, ${lon.toFixed(2)}°E`;
+    
+    setLoading(true);
+    let resolvedCity = cityName.trim();
+    let resolvedCityHi = cityName.trim();
+
+    // If they left the city name blank, reverse geocode the entered coordinates
+    if (!resolvedCity) {
+      const result = await resolveCityName(lat, lon);
+      resolvedCity = result.city;
+      resolvedCityHi = result.cityHi;
+    }
+
     const loc: LocationConfig = {
-      city,
-      cityHi: city,
+      city: resolvedCity,
+      cityHi: resolvedCityHi,
       latitude: lat,
       longitude: lon,
       heightMeters: DEFAULT_LOCATION.heightMeters,
     };
     onLocationSelected(loc);
+    setLoading(false);
   }
 
   if (loading) {
