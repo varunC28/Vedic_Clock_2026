@@ -14,14 +14,15 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Image, Platform, StyleSheet, Text, View, PixelRatio, Animated } from 'react-native';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { StyleSheet, Text, View, PixelRatio, Animated, Image } from 'react-native';
+import { Earth3D } from './Earth3D';
 import Svg, { Circle, G, Path, Defs, ClipPath, Text as SvgText, TextPath, Image as SvgImage } from 'react-native-svg';
 import { MUHURTAS } from '../data/muhurtas';
 import { VedicClockState } from '../models';
 import { colors } from '../theme';
 import { GiltArch } from './GiltArch';
 import { EngravedText } from './EngravedText';
+const AnimatedG = Animated.createAnimatedComponent(G);
 import { HeroDigits } from './HeroDigits';
 import { RASHI_ICONS } from '../data/rashiAssets';
 import { NAKSHATRA_ICONS } from '../data/nakshatraAssets';
@@ -34,7 +35,6 @@ interface Props {
 }
 
 const FRAME_ONLY = require('../../assets/images/OnlyFrame.png');
-const EARTH_VIDEO = require('../../assets/Rotating_Earth.mp4');
 const CORNER_ASSET = require('../../assets/images/corner_assest.png');
 
 interface AnimatedIconProps {
@@ -134,90 +134,18 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
   const ringOuterR = half * 0.94; // slightly larger for the brass texture
   const ringInnerR = half * 0.70;
 
-  // ── Animated Progress States ──────────────────────────────────────────
-  const targetKaranaSlot = state.panchang.karana.slot;
-  const targetYogaFraction = state.panchang.yoga.progressFraction;
+  const targetKaranaSlot = state.panchang?.karana?.slot ?? 0;
+  const targetYogaFraction = state.panchang?.yoga?.progressFraction ?? 0;
 
-  const [animKaranaSlot, setAnimKaranaSlot] = useState(0);
-  const [animYogaFraction, setAnimYogaFraction] = useState(0);
-
+  const glowAnim = useRef(new Animated.Value(0.4)).current;
   useEffect(() => {
-    let start = Date.now();
-    let duration = 1200; // 1.2 second fill animation
-    let frameId: number;
-
-    const animate = () => {
-      const progress = Math.min((Date.now() - start) / duration, 1);
-      const easeOut = 1 - Math.pow(1 - progress, 4); // easeOutQuart
-
-      setAnimKaranaSlot(targetKaranaSlot * easeOut);
-      setAnimYogaFraction(targetYogaFraction * easeOut);
-
-      if (progress < 1) {
-        frameId = requestAnimationFrame(animate);
-      } else {
-        // ensure exact values at end
-        setAnimKaranaSlot(targetKaranaSlot);
-        setAnimYogaFraction(targetYogaFraction);
-      }
-    };
-
-    frameId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frameId);
-  }, [targetKaranaSlot, targetYogaFraction]);
-
-  // ── Rotating Earth video player ──────────────────────────────────────
-  const appState = useRef(AppState.currentState);
-
-  const earthPlayer = useVideoPlayer(EARTH_VIDEO, (player) => {
-    player.loop = true;
-    player.muted = true;
-    player.staysActiveInBackground = true;
-    player.play();
-  });
-
-  // Robust looping fallback
-  useEffect(() => {
-    const sub = earthPlayer.addListener('playToEnd', () => {
-      earthPlayer.play();
-    });
-    return () => sub.remove();
-  }, [earthPlayer]);
-
-  // Playback recovery on app focus
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', nextAppState => {
-      if (
-        appState.current.match(/inactive|background/) &&
-        nextAppState === 'active'
-      ) {
-        earthPlayer.play();
-      }
-      appState.current = nextAppState;
-    });
-
-    if (Platform.OS === 'web') {
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
-          earthPlayer.play();
-        }
-      };
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-      return () => {
-        subscription.remove();
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-      };
-    }
-
-    return () => {
-      subscription.remove();
-    };
-  }, [earthPlayer]);
-
-  // Initial play trigger
-  useEffect(() => {
-    earthPlayer.play();
-  }, [earthPlayer]);
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        Animated.timing(glowAnim, { toValue: 0.4, duration: 1000, useNativeDriver: true }),
+      ])
+    ).start();
+  }, [glowAnim]);
 
   // Scale factor for text and spacing (normalized to size 600)
   const scale = size / 600;
@@ -259,9 +187,9 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
   const sunX = half + bottomCutoutX - rashiBgSize / 2;
   const sunY = frameCenterY + bottomCutoutY - rashiBgSize / 2;
 
-  const formatTimeIst = (d: Date) => d.toLocaleTimeString('en-US', {
+  const formatTimeIst = (d?: Date) => d ? d.toLocaleTimeString('en-US', {
     timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit'
-  });
+  }) : '';
   const sunriseStr = formatTimeIst(state.sunriseUtc);
   const sunsetStr = formatTimeIst(state.sunsetUtc);
 
@@ -297,31 +225,39 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
   const svgHalf = svgSize / 2;
   const svgOffset = (svgSize - size) / 2;
 
-  const r_inner_bottom = half * 1.28;
-  const r_outer_bottom = half * 1.54;
-  const r_text_bottom = half * 1.41;
+  // ── Unified arch layout config ──────────────────────────────────
+  const ARCH_BUDGET_DEG = 40;       // uniform angular budget for all 6 arches (+10% from 36°)
+  const HALF_BUDGET = ARCH_BUDGET_DEG / 2; // 20° from center to edge
 
-  const r_inner_top = half * 1.34;
-  const r_outer_top = half * 1.60;
-  const r_text_top = half * 1.47;
+  // Bottom half radii (shifted closer to center dial)
+  const r_inner_bottom = half * 1.16;
+  const r_outer_bottom = half * 1.40;
+  const r_text_bottom = half * 1.28;
 
-  // Left side: centered at 135 degrees.
-  const leftWedgeStart = 105 * Math.PI / 180;
-  const leftWedgeEnd = 165 * Math.PI / 180;
-  const leftTextStart = 165 * Math.PI / 180;
-  const leftTextEnd = 105 * Math.PI / 180;
+  // Top half radii (shifted closer to center dial)
+  const r_inner_top = half * 1.22;
+  const r_outer_top = half * 1.46;
+  const r_text_top = half * 1.34;
 
-  // Right side: centered at 45 degrees.
-  const rightWedgeStart = 15 * Math.PI / 180;
-  const rightWedgeEnd = 75 * Math.PI / 180;
-  const rightTextStart = 75 * Math.PI / 180;
-  const rightTextEnd = 15 * Math.PI / 180;
+  // Bottom-left: centered at 135° (Chandra Rashi). 135 ± 20 = 115°–155°
+  const leftWedgeStart = 115 * Math.PI / 180;
+  const leftWedgeEnd = 155 * Math.PI / 180;
+  const leftTextStart = 155 * Math.PI / 180;
+  const leftTextEnd = 115 * Math.PI / 180;
 
-  const topLeftWedgeStart = 195 * Math.PI / 180;
-  const topLeftWedgeEnd = 255 * Math.PI / 180;
+  // Bottom-right: centered at 45° (Surya Rashi). 45 ± 20 = 25°–65°
+  const rightWedgeStart = 25 * Math.PI / 180;
+  const rightWedgeEnd = 65 * Math.PI / 180;
+  const rightTextStart = 65 * Math.PI / 180;
+  const rightTextEnd = 25 * Math.PI / 180;
 
-  const topRightWedgeStart = 285 * Math.PI / 180;
-  const topRightWedgeEnd = 345 * Math.PI / 180;
+  // Top-left: centered at 225° (Nakshatra). 225 ± 20 = 205°–245°
+  const topLeftWedgeStart = 205 * Math.PI / 180;
+  const topLeftWedgeEnd = 245 * Math.PI / 180;
+
+  // Top-right: centered at 315° (Tithi). 315 ± 20 = 295°–335°
+  const topRightWedgeStart = 295 * Math.PI / 180;
+  const topRightWedgeEnd = 335 * Math.PI / 180;
 
   const leftArchWedge = arcWedge(svgHalf, svgHalf, r_inner_bottom, r_outer_bottom, leftWedgeStart, leftWedgeEnd);
   const rightArchWedge = arcWedge(svgHalf, svgHalf, r_inner_bottom, r_outer_bottom, rightWedgeStart, rightWedgeEnd);
@@ -337,12 +273,12 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
   const rightTextCx = svgHalf + r_text_bottom * Math.cos(45 * Math.PI / 180);
   const rightTextCy = svgHalf + r_text_bottom * Math.sin(45 * Math.PI / 180);
 
-  // Yoga progress arc calculations (centered at 90 degrees, spanning 105 to 75 degrees)
+  // Yoga progress arc (centered at 90°, same 40° budget). 90 ± 20 = 70°–110°
   const targetPercentage = Math.round(targetYogaFraction * 100);
 
-  const yogaStartAngleDeg = 105;
-  const yogaEndAngleDeg = 75;
-  const yogaAngleSpan = yogaStartAngleDeg - yogaEndAngleDeg; // 30 degrees
+  const yogaStartAngleDeg = 110;    // 90 + 20
+  const yogaEndAngleDeg = 70;       // 90 - 20
+  const yogaAngleSpan = yogaStartAngleDeg - yogaEndAngleDeg; // 40 degrees
 
   // Use target values for the label text and position
   const yogaLabelAngleDeg = yogaStartAngleDeg - targetYogaFraction * yogaAngleSpan;
@@ -352,44 +288,48 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
   const r_yoga_tick_end = r_text_bottom + 44 * scale;
   const r_yoga_label = r_text_bottom + 62 * scale;
 
-  const yogaTicks: { x1: number; y1: number; x2: number; y2: number; isActive: boolean; key: number }[] = [];
+  const r_yoga_mid = (r_yoga_tick_start + r_yoga_tick_end) / 2;
+  const yogaTicks: { cx: number; cy: number; rotation: number; isActive: boolean; isCurrent: boolean; key: number }[] = [];
+  const currentYogaIndex = Math.max(0, Math.min(59, Math.floor(targetYogaFraction * 60)));
   for (let i = 0; i < 60; i++) {
     const angleDeg = yogaStartAngleDeg - (i / 59) * yogaAngleSpan;
     const angleRad = angleDeg * Math.PI / 180;
     yogaTicks.push({
       key: i,
-      x1: svgHalf + r_yoga_tick_start * Math.cos(angleRad),
-      y1: svgHalf + r_yoga_tick_start * Math.sin(angleRad),
-      x2: svgHalf + r_yoga_tick_end * Math.cos(angleRad),
-      y2: svgHalf + r_yoga_tick_end * Math.sin(angleRad),
-      isActive: (i / 59) <= animYogaFraction,
+      cx: svgHalf + r_yoga_mid * Math.cos(angleRad),
+      cy: svgHalf + r_yoga_mid * Math.sin(angleRad),
+      rotation: angleDeg + 90,
+      isActive: i <= currentYogaIndex,
+      isCurrent: i === currentYogaIndex,
     });
   }
 
-  // Karana calculations (centered at 270 degrees, spanning 255 to 285 degrees)
-  const karanaIsFixed = state.panchang.karana.isFixed;
+  // Karana calculations (centered at 270°, same 40° budget). 270 ± 20 = 250°–290°
+  const karanaIsFixed = state.panchang?.karana?.isFixed ?? false;
   const karanaSubMeaning = karanaIsFixed ? 'स्थिर' : 'चर';
 
-  // Tick line parameters
-  const karanaStartAngleDeg = 252.5;
-  const karanaEndAngleDeg = 287.5;
-  const karanaAngleSpan = karanaEndAngleDeg - karanaStartAngleDeg; // 35 degrees
+  // Tick line parameters — equal 40° span matching all other arches
+  const karanaStartAngleDeg = 250;  // 270 - 20
+  const karanaEndAngleDeg = 290;    // 270 + 20
+  const karanaAngleSpan = karanaEndAngleDeg - karanaStartAngleDeg; // 40 degrees
   const r_karana_tick_start = r_text_top + 30 * scale;
   const r_karana_tick_end = r_text_top + 44 * scale;
   const r_karana_label = r_text_top + 58 * scale;
 
   // 60 tick lines coordinates
-  const karanaTicks: { x1: number; y1: number; x2: number; y2: number; isActive: boolean; key: number }[] = [];
+  const r_karana_mid = (r_karana_tick_start + r_karana_tick_end) / 2;
+  const karanaTicks: { cx: number; cy: number; rotation: number; isActive: boolean; isCurrent: boolean; key: number }[] = [];
+  const currentKaranaIndex = Math.max(0, Math.min(59, targetKaranaSlot - 1));
   for (let i = 0; i < 60; i++) {
     const angleDeg = karanaStartAngleDeg + (i / 59) * karanaAngleSpan;
     const angleRad = angleDeg * Math.PI / 180;
     karanaTicks.push({
       key: i,
-      x1: svgHalf + r_karana_tick_start * Math.cos(angleRad),
-      y1: svgHalf + r_karana_tick_start * Math.sin(angleRad),
-      x2: svgHalf + r_karana_tick_end * Math.cos(angleRad),
-      y2: svgHalf + r_karana_tick_end * Math.sin(angleRad),
-      isActive: (i + 1) <= animKaranaSlot,
+      cx: svgHalf + r_karana_mid * Math.cos(angleRad),
+      cy: svgHalf + r_karana_mid * Math.sin(angleRad),
+      rotation: angleDeg + 90,
+      isActive: i <= currentKaranaIndex,
+      isCurrent: i === currentKaranaIndex,
     });
   }
 
@@ -400,7 +340,7 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
   const karanaLabelX = svgHalf + r_karana_label * Math.cos(activeAngleRad);
   const karanaLabelY = svgHalf + r_karana_label * Math.sin(activeAngleRad);
 
-  const renderCurvedWords = (text: string, cx: number, cy: number, r: number, midAngleDeg: number, isTopHalf: boolean = false, showBg: boolean = false, fontSizeOverride?: number) => {
+  const renderCurvedWords = (text: string, cx: number, cy: number, r: number, midAngleDeg: number, isTopHalf: boolean = false, showBg: boolean = false, fontSizeOverride?: number, maxSpanDeg?: number) => {
     // 1. Calculate approximate visual span for the background track
     const getVisualLength = (str: string) => {
       const baseStr = str.replace(/[\u0901-\u0903\u093E-\u094C\u094E-\u0954\u0962\u0963\u094D]/g, '');
@@ -423,9 +363,10 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
     });
     visualTotalChars = currentVisualIndex - spaceWidth;
 
-    const degreesPerVisualChar = 3.3;
-    const paddingDegrees = 5; // Tighter padding
-    const span = Math.min(visualTotalChars * degreesPerVisualChar + paddingDegrees, 50);
+    const degreesPerVisualChar = 2.8;
+    const paddingDegrees = 4;
+    const budgetDeg = maxSpanDeg ?? 50;
+    const span = Math.min(visualTotalChars * degreesPerVisualChar + paddingDegrees, budgetDeg);
 
     // Shift radius inwards for top-half arches to vertically center the text
     const effectiveR = isTopHalf ? r - (15 * scale) : r;
@@ -450,7 +391,7 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
           <Path
             d={bgPath}
             stroke="rgba(0,0,0,0.65)"
-            strokeWidth={52 * scale}
+            strokeWidth={37 * scale}
             strokeLinecap="round"
             fill="none"
           />
@@ -469,7 +410,7 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
             <G key={i} x={x} y={y} rotation={rotation} origin="0, 0">
               <SvgText
                 fill={colors.highlight}
-                fontSize={fontSizeOverride || 32 * scale}
+                fontSize={fontSizeOverride || 26 * scale}
                 fontWeight="bold"
                 textAnchor="middle"
                 alignmentBaseline="middle"
@@ -486,7 +427,7 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
   return (
     <View style={[styles.wrapper, { width: size, height: size, transform: [{ translateY: 0 }] }]}>
 
-      {/* Layer 1: Rotating Earth Video — circular-clipped behind the frame */}
+      {/* Layer 1: 3D Earth — circular-clipped behind the frame */}
 
       <View
         style={{
@@ -497,14 +438,10 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
           top: maskOffset + videoOffset,
           borderRadius: videoSize / 2,
           overflow: 'hidden',
+          backgroundColor: '#000', // Black background for space behind the earth
         }}
       >
-        <VideoView
-          player={earthPlayer}
-          style={{ width: videoSize, height: videoSize }}
-          contentFit="cover"
-          nativeControls={false}
-        />
+        <Earth3D size={videoSize} />
       </View>
 
       {/* Layer 2: Full UI Frame Overlay */}
@@ -557,51 +494,61 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
 
         {/* Left Arch (Moon Rashi) */}
 
-        {renderCurvedWords(`चन्द्र राशि : ${state.panchang.moonRashi.nameHi}`, svgHalf, svgHalf, r_text_bottom, 135, false, true)}
+        {renderCurvedWords(`चन्द्र राशि : ${state.panchang?.moonRashi?.nameHi ?? ''}`, svgHalf, svgHalf, r_text_bottom, 135, false, true, undefined, ARCH_BUDGET_DEG)}
 
         {/* Bottom-Center Arch (Yoga) */}
-        {renderCurvedWords(`योग : ${state.panchang.yoga.nameHi}`, svgHalf, svgHalf, r_text_bottom, 90, false, true)}
+        {renderCurvedWords(`योग : ${state.panchang?.yoga?.nameHi ?? ''}`, svgHalf, svgHalf, r_text_bottom, 90, false, true, undefined, ARCH_BUDGET_DEG)}
 
         {/* Yoga Progressive Bar */}
-        {yogaTicks.map((tick) => (
-          <Path
-            key={tick.key}
-            d={`M ${tick.x1} ${tick.y1} L ${tick.x2} ${tick.y2}`}
-            stroke={tick.isActive ? colors.highlight : 'rgba(255, 255, 255, 0.5)'}
-            strokeWidth={1.2 * scale}
-          />
-        ))}
+        {yogaTicks.map((tick) => {
+          const Node = tick.isCurrent ? AnimatedG : G;
+          return (
+            <Node key={tick.key} x={tick.cx} y={tick.cy} rotation={tick.rotation} origin="0, 0" opacity={tick.isCurrent ? glowAnim : 1}>
+              <Path
+                d={`M 0 ${7 * scale} C ${-3.5 * scale} ${1.4 * scale}, ${-4.2 * scale} ${-4.2 * scale}, 0 ${-7 * scale} C ${4.2 * scale} ${-4.2 * scale}, ${3.5 * scale} ${1.4 * scale}, 0 ${7 * scale} Z`}
+                fill={tick.isActive ? '#FF9933' : 'rgba(255, 255, 255, 0.1)'}
+                stroke={tick.isActive ? '#FFD700' : 'rgba(255, 255, 255, 0.2)'}
+                strokeWidth={0.8 * scale}
+              />
+            </Node>
+          );
+        })}
 
         {/* Yoga Percentage Label */}
-        {renderCurvedWords(`${targetPercentage}/100`, svgHalf, svgHalf, r_yoga_label, yogaLabelAngleDeg, false, false, 22 * scale)}
+        {renderCurvedWords(`${targetPercentage}/100`, svgHalf, svgHalf, r_yoga_label, yogaLabelAngleDeg, false, false, 20 * scale)}
 
         {/* Right Arch (Sun Rashi) */}
 
-        {renderCurvedWords(`सूर्य राशि : ${state.panchang.sunRashi.nameHi}`, svgHalf, svgHalf, r_text_bottom, 45, false, true)}
+        {renderCurvedWords(`सूर्य राशि : ${state.panchang?.sunRashi?.nameHi ?? ''}`, svgHalf, svgHalf, r_text_bottom, 45, false, true, undefined, ARCH_BUDGET_DEG)}
 
         {/* Top-Left Arch (Nakshatra) */}
 
-        {renderCurvedWords(`नक्षत्र : ${state.panchang.nakshatra.nameHi}`, svgHalf, svgHalf, r_text_top, 225, true, true)}
+        {renderCurvedWords(`नक्षत्र : ${state.panchang?.nakshatra?.nameHi ?? ''}`, svgHalf, svgHalf, r_text_top, 225, true, true, undefined, ARCH_BUDGET_DEG)}
 
         {/* Karana (Top-Center) */}
-        {renderCurvedWords(`करण : ${state.panchang.karana.nameHi}`, svgHalf, svgHalf, r_text_top, 270, true, true)}
+        {renderCurvedWords(`करण : ${state.panchang?.karana?.nameHi ?? ''}`, svgHalf, svgHalf, r_text_top, 270, true, true, undefined, ARCH_BUDGET_DEG)}
 
-        {karanaTicks.map((tick) => (
-          <Path
-            key={tick.key}
-            d={`M ${tick.x1} ${tick.y1} L ${tick.x2} ${tick.y2}`}
-            stroke={tick.isActive ? colors.highlight : 'rgba(255, 255, 255, 0.5)'}
-            strokeWidth={1.2 * scale}
-          />
-        ))}
+        {karanaTicks.map((tick) => {
+          const Node = tick.isCurrent ? AnimatedG : G;
+          return (
+            <Node key={tick.key} x={tick.cx} y={tick.cy} rotation={tick.rotation} origin="0, 0" opacity={tick.isCurrent ? glowAnim : 1}>
+              <Path
+                d={`M 0 ${7 * scale} C ${-3.5 * scale} ${1.4 * scale}, ${-4.2 * scale} ${-4.2 * scale}, 0 ${-7 * scale} C ${4.2 * scale} ${-4.2 * scale}, ${3.5 * scale} ${1.4 * scale}, 0 ${7 * scale} Z`}
+                fill={tick.isActive ? '#FF9933' : 'rgba(255, 255, 255, 0.1)'}
+                stroke={tick.isActive ? '#FFD700' : 'rgba(255, 255, 255, 0.2)'}
+                strokeWidth={0.8 * scale}
+              />
+            </Node>
+          );
+        })}
 
         {/* Karana Active Slot Label */}
-        {renderCurvedWords(`${targetKaranaSlot}/60`, svgHalf, svgHalf, r_karana_label + (15 * scale), activeAngleDeg, true, false, 22 * scale)}
+        {renderCurvedWords(`${targetKaranaSlot}/60`, svgHalf, svgHalf, r_karana_label + (15 * scale), activeAngleDeg, true, false, 20 * scale)}
 
         {/* Top-Right Arch (Tithi) */}
 
         {/* Top-Right Text (Tithi) */}
-        {renderCurvedWords(`तिथि : ${state.panchang.tithi.nameHi}`, svgHalf, svgHalf, r_text_top, 315, true, true)}
+        {renderCurvedWords(`तिथि : ${state.panchang?.tithi?.nameHi ?? ''}`, svgHalf, svgHalf, r_text_top, 315, true, true, undefined, ARCH_BUDGET_DEG)}
 
       </Svg>
 
@@ -645,32 +592,45 @@ export function DialCore({ state, size }: Props): React.JSX.Element {
               styles.rashiLabel,
               {
                 fontSize: 24 * scale,
-                marginTop: 24 * scale,
+                marginTop: 16 * scale,
                 letterSpacing: 1 * scale,
               }
             ]}
             numberOfLines={1}
           >
-            देवता : {DEITY_HI[state.muhurta.deity] || state.muhurta.deity}
+            {state.muhurta?.devanagari ?? ''} · {state.muhurta?.name ?? ''}
+          </Text>
+          <Text
+            style={[
+              styles.rashiLabel,
+              {
+                fontSize: 24 * scale,
+                marginTop: 8 * scale,
+                letterSpacing: 1 * scale,
+              }
+            ]}
+            numberOfLines={1}
+          >
+            देवता : {state.muhurta ? (DEITY_HI[state.muhurta.deity] || state.muhurta.deity) : ''}
           </Text>
         </View>
       </View>
 
       {/* Floating Icons */}
       <View style={[styles.rashiFloatingContainer, { left: moonX, top: moonY, width: rashiBgSize, height: rashiBgSize }]}>
-        <AnimatedIcon index={state.panchang.moonRashi.index} size={rashiSize} scale={scale} icons={RASHI_ICONS} />
+        <AnimatedIcon index={state.panchang?.moonRashi?.index ?? 0} size={rashiSize} scale={scale} icons={RASHI_ICONS} />
       </View>
 
       <View style={[styles.rashiFloatingContainer, { left: sunX, top: sunY, width: rashiBgSize, height: rashiBgSize }]}>
-        <AnimatedIcon index={state.panchang.sunRashi.index} size={rashiSize} scale={scale} icons={RASHI_ICONS} />
+        <AnimatedIcon index={state.panchang?.sunRashi?.index ?? 0} size={rashiSize} scale={scale} icons={RASHI_ICONS} />
       </View>
 
       <View style={[styles.rashiFloatingContainer, { left: nakshatraX, top: nakshatraY, width: rashiBgSize, height: rashiBgSize }]}>
-        <AnimatedIcon index={state.panchang.nakshatra.index} size={rashiSize} scale={scale} icons={NAKSHATRA_ICONS} />
+        <AnimatedIcon index={state.panchang?.nakshatra?.index ?? 0} size={rashiSize} scale={scale} icons={NAKSHATRA_ICONS} />
       </View>
 
       <View style={[styles.rashiFloatingContainer, { left: tithiX, top: tithiY, width: rashiBgSize, height: rashiBgSize }]}>
-        <AnimatedIcon index={state.panchang.tithi.index} size={rashiSize} scale={scale} icons={TITHI_ICONS} />
+        <AnimatedIcon index={state.panchang?.tithi?.index ?? 0} size={rashiSize} scale={scale} icons={TITHI_ICONS} />
       </View>
 
       {/* ── Capsule Text Overlays ── */}
