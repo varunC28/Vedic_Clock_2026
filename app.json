@@ -34,8 +34,12 @@
       "expo-font",
       "expo-screen-orientation",
       "./plugins/withKiosk.js",
-      "expo-asset",
-      "expo-video"
-    ]
+      "expo-asset"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "2547cdba-e40d-4c94-8469-6fbe82e45dc1"
+      }
+    }
   }
 }
