@@ -22,6 +22,7 @@ import { colors, glass } from '../theme';
 import { YantraRosette } from './YantraRosette';
 import { useResponsive } from '../hooks/useResponsive';
 import { EngravedText } from './EngravedText';
+import { lunarMonthHiForSunRashi } from '../data/hinduCalendar';
 
 interface Props {
   state: VedicClockState;
@@ -41,10 +42,14 @@ export function TopBar({ state }: Props): JSX.Element {
   const monthHi = MONTH_HI[istNow.getUTCMonth()];
   const year = istNow.getUTCFullYear();
   const dateStrHi = `${day} ${monthHi} ${year}`;
+  const lunarMonthHi = state.panchang?.sunRashi ? lunarMonthHiForSunRashi(state.panchang.sunRashi.index) : '';
 
+  const pakshaHi = state.panchang.tithi.paksha === 'shukla' ? 'शुक्ल' : 'कृष्ण';
+  const tithiStr = `${state.lunarMonthHi} ${pakshaHi} पक्ष ${state.panchang.tithi.nameHi}`;
+  
   const tagline = state.todayFestival
     ? `${state.todayFestival.nameHi} · ${state.todayFestival.nameEn}`
-    : 'विक्रमादित्य वैदिक घड़ी';
+    : tithiStr;
 
   // Dynamic layout calculations
   const rosetteSize = Math.max(28, Math.min(52, 40 * scale));
@@ -90,7 +95,7 @@ export function TopBar({ state }: Props): JSX.Element {
           />
           <View style={styles.cornerContent}>
             <EngravedText text={dateStrHi} fontSize={16 * scale} />
-            <Text style={[styles.dateSmall, { fontSize: 11 * scale, marginTop: 4 * scale, marginBottom: 4 * scale }]} numberOfLines={1}>{vara.nameHi}</Text>
+            <Text style={[styles.dateSmall, { fontSize: 11 * scale, marginTop: 4 * scale, marginBottom: 4 * scale }]} numberOfLines={1}>{vara.nameHi}{lunarMonthHi ? ` | ${lunarMonthHi}` : ''}</Text>
           </View>
         </View>
       </View>

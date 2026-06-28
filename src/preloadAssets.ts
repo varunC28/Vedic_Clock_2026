@@ -5,11 +5,9 @@ export const ALL_ASSETS = [
   // Common UI assets
   require('../assets/images/corner_assest.png'),
   require('../assets/images/OnlyFrame.png'),
-  require('../assets/images/rashi circle.png'),
   
   // Videos
-  require('../assets/Rotating_Earth.mp4'),
-  require('../assets/bg0.mp4'),
+  // (Obsolete video assets removed)
   
   // Earth Textures
   require('../assets/earth.jpg'),
