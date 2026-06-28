@@ -40,11 +40,10 @@ function EarthSphere(): React.JSX.Element {
   const meshRef = useRef<THREE.Mesh>(null);
 
   // @react-three/drei's useTexture handles Expo assets natively in Android Release
-  const [dayMap, normalMap, specularMap, nightMap] = useTexture([
+  const [dayMap, normalMap, specularMap] = useTexture([
     EARTH_TEXTURE,
     EARTH_NORMAL,
     EARTH_SPECULAR,
-    EARTH_NIGHT,
   ]);
 
   const { gl } = useThree();
@@ -55,17 +54,13 @@ function EarthSphere(): React.JSX.Element {
     dayMap.colorSpace = THREE.SRGBColorSpace;
     dayMap.needsUpdate = true;
     
-    nightMap.colorSpace = THREE.SRGBColorSpace;
-    nightMap.needsUpdate = true;
-    
     dayMap.anisotropy = maxAnisotropy;
-    nightMap.anisotropy = maxAnisotropy;
     normalMap.anisotropy = maxAnisotropy;
     specularMap.anisotropy = maxAnisotropy;
     
     normalMap.needsUpdate = true;
     specularMap.needsUpdate = true;
-  }, [dayMap, nightMap, normalMap, specularMap, maxAnisotropy]);
+  }, [dayMap, normalMap, specularMap, maxAnisotropy]);
 
   // Slow continuous rotation
   useFrame((_state, delta) => {
@@ -83,45 +78,6 @@ function EarthSphere(): React.JSX.Element {
         specularMap={specularMap}
         specular={new THREE.Color(0x333333)}
         shininess={15}
-        onBeforeCompile={(shader) => {
-          shader.uniforms.tNight = { value: nightMap };
-
-          shader.fragmentShader = `
-            uniform sampler2D tNight;
-            ${shader.fragmentShader}
-          `;
-
-          shader.fragmentShader = shader.fragmentShader.replace(
-            '#include <emissivemap_fragment>',
-            `
-            #include <emissivemap_fragment>
-            
-            vec4 nightColor = texture2D( tNight, vMapUv );
-            
-            // Assume sun light is at [5.0, 3.0, 5.0] in world space
-            vec3 lightDirWorld = normalize(vec3(5.0, 3.0, 5.0));
-            vec3 lightDirView = normalize((viewMatrix * vec4(lightDirWorld, 0.0)).xyz);
-            
-            // Dot product of normal and light dir
-            float nDotL = dot(vNormal, lightDirView);
-            
-            // When nDotL is less than 0, it is night. Smoothstep gives a soft terminator.
-            float nightFactor = smoothstep(0.1, -0.2, nDotL);
-            
-            // Add night lights to totalEmissiveRadiance
-            totalEmissiveRadiance += nightColor.rgb * nightFactor * vec3(1.0, 0.9, 0.8) * 1.5;
-            `
-          ).replace(
-            '#include <specularmap_fragment>',
-            `
-            #include <specularmap_fragment>
-            #ifdef USE_SPECULARMAP
-              // Darken the water where specular map is bright
-              diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 0.4, specularStrength);
-            #endif
-            `
-          );
-        }}
       />
     </mesh>
   );
